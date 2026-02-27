@@ -16,9 +16,9 @@
  * - Location data encrypted with AWS KMS
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -59,16 +59,16 @@ export interface SharingSession {
   trackingUrl: string;
   isActive: boolean;
   includeMatchDetails: boolean;
-  matchDetails?: LocationSharingConfig['matchDetails'];
+  matchDetails?: LocationSharingConfig["matchDetails"];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Storage Keys
 // ─────────────────────────────────────────────────────────────────────────────
 const STORAGE_KEYS = {
-  activeSession: 'bandhan_safety_active_session',
-  locationHistory: 'bandhan_safety_location_history',
-  consentGiven: 'bandhan_safety_consent',
+  activeSession: "bandhan_safety_active_session",
+  locationHistory: "bandhan_safety_location_history",
+  consentGiven: "bandhan_safety_consent",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,8 +79,9 @@ const STORAGE_KEYS = {
  * Generate unique tracking URL for location sharing
  */
 function generateTrackingUrl(): string {
-  const trackingId = Math.random().toString(36).substring(2, 10) +
-                     Date.now().toString(36).substring(4);
+  const trackingId =
+    Math.random().toString(36).substring(2, 10) +
+    Date.now().toString(36).substring(4);
   return `bandhan.ai/track/${trackingId}`;
 }
 
@@ -109,7 +110,7 @@ function saveSession(session: SharingSession): void {
   try {
     localStorage.setItem(STORAGE_KEYS.activeSession, JSON.stringify(session));
   } catch (error) {
-    console.error('Error saving session:', error);
+    console.error("Error saving session:", error);
   }
 }
 
@@ -131,7 +132,7 @@ function getActiveSession(): SharingSession | null {
 
     return session;
   } catch (error) {
-    console.error('Error getting session:', error);
+    console.error("Error getting session:", error);
     return null;
   }
 }
@@ -147,9 +148,9 @@ function endSharing(): void {
     // Clear location history (privacy requirement)
     localStorage.removeItem(STORAGE_KEYS.locationHistory);
 
-    console.log('[Location Sharing] Session ended, data deleted');
+    console.log("[Location Sharing] Session ended, data deleted");
   } catch (error) {
-    console.error('Error ending session:', error);
+    console.error("Error ending session:", error);
   }
 }
 
@@ -165,10 +166,10 @@ let updateInterval: NodeJS.Timeout | null = null;
  */
 function startTracking(
   onLocationUpdate: (location: LocationData) => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
 ): void {
   if (!navigator.geolocation) {
-    onError(new Error('Geolocation is not supported by this browser'));
+    onError(new Error("Geolocation is not supported by this browser"));
     return;
   }
 
@@ -193,13 +194,13 @@ function startTracking(
       storeLocation(location);
     },
     (error) => {
-      onError(error);
+      onError(new Error(error.message));
     },
     {
       enableHighAccuracy: true,
       timeout: 10000,
       maximumAge: 5000,
-    }
+    },
   );
 
   // Also set up periodic updates as backup
@@ -216,13 +217,13 @@ function startTracking(
         storeLocation(location);
       },
       (error) => {
-        console.warn('[Location Tracking] Periodic update failed:', error);
+        console.warn("[Location Tracking] Periodic update failed:", error);
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 5000,
-      }
+      },
     );
   }, 30000); // Update every 30 seconds
 }
@@ -248,7 +249,7 @@ function stopTracking(): void {
 function storeLocation(location: LocationData): void {
   try {
     const history: LocationData[] = JSON.parse(
-      localStorage.getItem(STORAGE_KEYS.locationHistory) || '[]'
+      localStorage.getItem(STORAGE_KEYS.locationHistory) || "[]",
     );
 
     // Keep only last 100 locations to prevent storage bloat
@@ -259,7 +260,7 @@ function storeLocation(location: LocationData): void {
 
     localStorage.setItem(STORAGE_KEYS.locationHistory, JSON.stringify(history));
   } catch (error) {
-    console.error('Error storing location:', error);
+    console.error("Error storing location:", error);
   }
 }
 
@@ -269,10 +270,10 @@ function storeLocation(location: LocationData): void {
 function getLocationHistory(): LocationData[] {
   try {
     return JSON.parse(
-      localStorage.getItem(STORAGE_KEYS.locationHistory) || '[]'
+      localStorage.getItem(STORAGE_KEYS.locationHistory) || "[]",
     );
   } catch (error) {
-    console.error('Error getting location history:', error);
+    console.error("Error getting location history:", error);
     return [];
   }
 }
@@ -353,20 +354,22 @@ export function useActiveSharing() {
  * });
  */
 export async function startLocationSharing(
-  config: LocationSharingConfig
+  config: LocationSharingConfig,
 ): Promise<string> {
   // Check for geolocation support
   if (!navigator.geolocation) {
-    throw new Error('Geolocation is not supported by this browser');
+    throw new Error("Geolocation is not supported by this browser");
   }
 
   // Request permission
   const permission = await navigator.permissions.query({
-    name: 'geolocation' as PermissionName,
+    name: "geolocation" as PermissionName,
   });
 
-  if (permission.state === 'denied') {
-    throw new Error('Location permission denied. Please enable in browser settings.');
+  if (permission.state === "denied") {
+    throw new Error(
+      "Location permission denied. Please enable in browser settings.",
+    );
   }
 
   // Create and save session
@@ -376,13 +379,13 @@ export async function startLocationSharing(
   // Start location tracking
   startTracking(
     (location) => {
-      console.log('[Location Update]', location);
+      console.log("[Location Update]", location);
       // In production, upload location to secure server
       // uploadLocation(session.trackingUrl, location);
     },
     (error) => {
-      console.error('[Location Tracking Error]', error);
-    }
+      console.error("[Location Tracking Error]", error);
+    },
   );
 
   // Set up auto-stop timer
@@ -390,7 +393,7 @@ export async function startLocationSharing(
   setTimeout(() => {
     endSharing();
     stopTracking();
-    console.log('[Location Sharing] Auto-stopped after 2 hours');
+    console.log("[Location Sharing] Auto-stopped after 2 hours");
   }, timeUntilEnd);
 
   // Return tracking URL
@@ -441,7 +444,7 @@ export function getTrackingUrl(): string | null {
  */
 export function hasConsent(): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEYS.consentGiven) === 'true';
+    return localStorage.getItem(STORAGE_KEYS.consentGiven) === "true";
   } catch {
     return false;
   }
@@ -452,9 +455,9 @@ export function hasConsent(): boolean {
  */
 export function giveConsent(): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.consentGiven, 'true');
+    localStorage.setItem(STORAGE_KEYS.consentGiven, "true");
   } catch (error) {
-    console.error('Error saving consent:', error);
+    console.error("Error saving consent:", error);
   }
 }
 
@@ -467,7 +470,7 @@ export function revokeConsent(): void {
     endSharing();
     stopTracking();
   } catch (error) {
-    console.error('Error revoking consent:', error);
+    console.error("Error revoking consent:", error);
   }
 }
 
@@ -490,8 +493,8 @@ export function checkBatteryOptimization(): {
   return {
     isOptimized,
     recommendation: isOptimized
-      ? 'Battery optimization may affect location tracking. Consider disabling for Bandhan AI.'
-      : 'Location tracking will work normally.',
+      ? "Battery optimization may affect location tracking. Consider disabling for Bandhan AI."
+      : "Location tracking will work normally.",
   };
 }
 
