@@ -112,14 +112,6 @@ const nextConfig = {
       "@radix-ui/react-tabs",
       "date-fns",
     ],
-    turbo: {
-      rules: {
-        "*.svg": {
-          loaders: ["@svgr/webpack"],
-          as: "*.js",
-        },
-      },
-    },
   },
 
   // ─── Redirects ────────────────────────────────────────────────────
@@ -140,38 +132,21 @@ const nextConfig = {
 
   // ─── Rewrites (Mock API for Demo Mode) ───────────────────────────
   async rewrites() {
-    return [
-      // Rewrite all /api/* requests to mock API handlers
-      {
-        source: "/api/:path*",
-        destination: "/api/mock/:path*",
-      },
-      // Rewrite auth endpoints to mock auth
-      {
-        source: "/api/auth/:path*",
-        destination: "/api/mock/auth/:path*",
-      },
-      // Rewrite matches endpoints
-      {
-        source: "/api/matches/:path*",
-        destination: "/api/mock/matches/:path*",
-      },
-      // Rewrite chat endpoints
-      {
-        source: "/api/chat/:path*",
-        destination: "/api/mock/chat/:path*",
-      },
-      // Rewrite profile endpoints
-      {
-        source: "/api/profile/:path*",
-        destination: "/api/mock/profile/:path*",
-      },
-      // Rewrite subscription endpoints
-      {
-        source: "/api/subscription/:path*",
-        destination: "/api/mock/subscription/:path*",
-      },
-    ];
+    return {
+      // beforeFiles rewrites run before checking filesystem/pages
+      beforeFiles: [],
+      // afterFiles rewrites run after filesystem checks but before 404
+      afterFiles: [
+        // Rewrite all /api/* requests to mock API handlers
+        // Skip /api/mock/* and /api/health to avoid infinite loops
+        {
+          source: "/api/:path((?!mock|health).*)",
+          destination: "/api/mock/:path*",
+        },
+      ],
+      // fallback rewrites run after both pages and filesystem
+      fallback: [],
+    };
   },
 
   // ─── Security & Performance Headers ──────────────────────────────
@@ -276,12 +251,6 @@ const nextConfig = {
 
   // ─── Webpack Customisation ────────────────────────────────────────
   webpack(config, { isServer }) {
-    // Handle SVG as React components
-    config.module.rules.push({
-      test: /\.svg$/,
-      use: ["@svgr/webpack"],
-    });
-
     // Prevent firebase-admin from being bundled on the client
     if (!isServer) {
       config.resolve.fallback = {
@@ -299,18 +268,9 @@ const nextConfig = {
   },
 
   // ─── Output ───────────────────────────────────────────────────────
-  output: "standalone", // optimal for Docker / serverless on AWS India
   poweredByHeader: false, // hide "X-Powered-By: Next.js"
   compress: true,
   reactStrictMode: true,
-  swcMinify: true,
-
-  // ─── Internationalisation (Indian languages) ─────────────────────
-  // Note: i18n localeDetection is disabled - using custom LanguageContext instead
-  i18n: {
-    locales: ["en-IN"],
-    defaultLocale: "en-IN",
-  },
 };
 
 module.exports = withPWA(nextConfig);

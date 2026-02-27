@@ -9,13 +9,13 @@
  * - Health check endpoint
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration
 // ─────────────────────────────────────────────────────────────────────────────
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-const PRODUCTION = process.env.NODE_ENV === 'production';
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+const PRODUCTION = process.env.NODE_ENV === "production";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Middleware Function
@@ -26,13 +26,13 @@ export function middleware(request: NextRequest) {
   // ───────────────────────────────────────────────────────────────────────────
   // Health Check Endpoint
   // ───────────────────────────────────────────────────────────────────────────
-  if (pathname === '/api/health') {
+  if (pathname === "/api/health") {
     return NextResponse.json({
-      status: 'healthy',
+      status: "healthy",
       demoMode: DEMO_MODE,
       production: PRODUCTION,
       timestamp: new Date().toISOString(),
-      version: process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0',
+      version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
     });
   }
 
@@ -40,23 +40,9 @@ export function middleware(request: NextRequest) {
   // Force Demo Mode in Production
   // ───────────────────────────────────────────────────────────────────────────
   if (PRODUCTION && !DEMO_MODE) {
-    console.warn('⚠️ Production deployment without demo mode! Forcing demo mode...');
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Mock API Routing
-  // ───────────────────────────────────────────────────────────────────────────
-  // Rewrite all /api/* requests to /api/mock/* in demo mode
-  if (DEMO_MODE && pathname.startsWith('/api/')) {
-    // Skip mock API routes themselves
-    if (!pathname.startsWith('/api/mock/')) {
-      const url = request.nextUrl.clone();
-      url.pathname = `/api/mock${pathname}`;
-
-      console.log('🔄 Rewriting API request:', pathname, '→', url.pathname);
-
-      return NextResponse.rewrite(url);
-    }
+    console.warn(
+      "⚠️ Production deployment without demo mode! Forcing demo mode...",
+    );
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -65,13 +51,16 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Add demo mode header for debugging
-  response.headers.set('X-Demo-Mode', DEMO_MODE ? 'true' : 'false');
-  response.headers.set('X-Environment', PRODUCTION ? 'production' : 'development');
+  response.headers.set("X-Demo-Mode", DEMO_MODE ? "true" : "false");
+  response.headers.set(
+    "X-Environment",
+    PRODUCTION ? "production" : "development",
+  );
 
   // Security headers
   if (PRODUCTION) {
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set("X-Frame-Options", "DENY");
   }
 
   return response;
@@ -89,6 +78,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (robots.txt, sitemap.xml, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

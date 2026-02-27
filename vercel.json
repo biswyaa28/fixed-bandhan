@@ -65,29 +65,6 @@
     }
   ],
 
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/mock/:path*"
-    },
-    {
-      "source": "/api/auth/:path*",
-      "destination": "/api/mock/auth/:path*"
-    },
-    {
-      "source": "/api/matches/:path*",
-      "destination": "/api/mock/matches/:path*"
-    },
-    {
-      "source": "/api/chat/:path*",
-      "destination": "/api/mock/chat/:path*"
-    },
-    {
-      "source": "/api/profile/:path*",
-      "destination": "/api/mock/profile/:path*"
-    }
-  ],
-
   "crons": [],
 
   "functions": {
