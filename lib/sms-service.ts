@@ -19,7 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 export interface SafetySMSOptions {
   phoneNumber: string;
-  language?: 'en' | 'hi';
+  language?: "en" | "hi";
   includeMatchDetails?: boolean;
   matchDetails?: {
     name: string;
@@ -46,44 +46,44 @@ const SMS_TEMPLATES = {
   en: {
     // Primary safety SMS
     safety:
-      'Hi, I\'m on a date using Bandhan AI. My live location: {trackingUrl}. This is for safety purposes only. - BNDHAN',
+      "Hi, I'm on a date using Bandhan AI. My live location: {trackingUrl}. This is for safety purposes only. - BNDHAN",
 
     // With match details
     safetyWithMatch:
-      'Hi, I\'m on a date with {matchName} using Bandhan AI. My live location: {trackingUrl}. This is for safety purposes only. - BNDHAN',
+      "Hi, I'm on a date with {matchName} using Bandhan AI. My live location: {trackingUrl}. This is for safety purposes only. - BNDHAN",
 
     // Location update (sent periodically)
     locationUpdate:
-      'Location update: I\'m still safe. Live location: {trackingUrl}. Auto-stops in {timeRemaining}. - BNDHAN',
+      "Location update: I'm still safe. Live location: {trackingUrl}. Auto-stops in {timeRemaining}. - BNDHAN",
 
     // Sharing ended
     sharingEnded:
-      'Location sharing has ended. All location data has been deleted. This was a Bandhan AI safety feature. - BNDHAN',
+      "Location sharing has ended. All location data has been deleted. This was a Bandhan AI safety feature. - BNDHAN",
 
     // Emergency SOS (if user triggers emergency)
     emergency:
-      'EMERGENCY: I need help. My current location: {trackingUrl}. Please contact me immediately. - BNDHAN',
+      "EMERGENCY: I need help. My current location: {trackingUrl}. Please contact me immediately. - BNDHAN",
   },
   hi: {
     // Primary safety SMS
     safety:
-      'नमस्ते, मैं बंधन एआई का उपयोग करके डेट पर हूं। मेरा लाइव स्थान: {trackingUrl}। यह केवल सुरक्षा उद्देश्यों के लिए है। - BNDHAN',
+      "नमस्ते, मैं बंधन एआई का उपयोग करके डेट पर हूं। मेरा लाइव स्थान: {trackingUrl}। यह केवल सुरक्षा उद्देश्यों के लिए है। - BNDHAN",
 
     // With match details
     safetyWithMatch:
-      'नमस्ते, मैं {matchName} के साथ बंधन एआई का उपयोग करके डेट पर हूं। मेरा लाइव स्थान: {trackingUrl}। यह केवल सुरक्षा उद्देश्यों के लिए है। - BNDHAN',
+      "नमस्ते, मैं {matchName} के साथ बंधन एआई का उपयोग करके डेट पर हूं। मेरा लाइव स्थान: {trackingUrl}। यह केवल सुरक्षा उद्देश्यों के लिए है। - BNDHAN",
 
     // Location update
     locationUpdate:
-      'स्थान अपडेट: मैं अभी भी सुरक्षित हूं। लाइव स्थान: {trackingUrl}। {timeRemaining} में स्वतः रुक जाएगा। - BNDHAN',
+      "स्थान अपडेट: मैं अभी भी सुरक्षित हूं। लाइव स्थान: {trackingUrl}। {timeRemaining} में स्वतः रुक जाएगा। - BNDHAN",
 
     // Sharing ended
     sharingEnded:
-      'स्थान साझाकरण समाप्त हो गया है। सभी स्थान डेटा हटा दिया गया है। यह एक बंधन एआई सुरक्षा सुविधा थी। - BNDHAN',
+      "स्थान साझाकरण समाप्त हो गया है। सभी स्थान डेटा हटा दिया गया है। यह एक बंधन एआई सुरक्षा सुविधा थी। - BNDHAN",
 
     // Emergency SOS
     emergency:
-      'आपातकालीन: मुझे मदद की जरूरत है। मेरा वर्तमान स्थान: {trackingUrl}। कृपया तुरंत मुझसे संपर्क करें। - BNDHAN',
+      "आपातकालीन: मुझे मदद की जरूरत है। मेरा वर्तमान स्थान: {trackingUrl}। कृपया तुरंत मुझसे संपर्क करें। - BNDHAN",
   },
 };
 
@@ -92,17 +92,17 @@ const SMS_TEMPLATES = {
 // ─────────────────────────────────────────────────────────────────────────────
 const SMS_CONFIG = {
   // TRAI Registered Sender ID
-  senderId: 'BNDHAN',
+  senderId: "BNDHAN",
 
   // Template ID (registered with TRAI)
-  templateId: '19001234567890123456',
+  templateId: "19001234567890123456",
 
   // Rate limiting
   maxSmsPerHour: 10,
   maxSmsPerDay: 50,
 
   // Default tracking URL (in production, generate unique short URL)
-  defaultTrackingUrl: 'bandhan.ai/track',
+  defaultTrackingUrl: "bandhan.ai/track",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,7 +110,10 @@ const SMS_CONFIG = {
 // ─────────────────────────────────────────────────────────────────────────────
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
-function checkRateLimit(identifier: string): { allowed: boolean; remaining: number } {
+function checkRateLimit(identifier: string): {
+  allowed: boolean;
+  remaining: number;
+} {
   const now = Date.now();
   const hourMs = 60 * 60 * 1000;
 
@@ -151,10 +154,12 @@ function checkRateLimit(identifier: string): { allowed: boolean; remaining: numb
  *   matchDetails: { name: 'Rahul Sharma' },
  * });
  */
-export async function sendSafetySMS(options: SafetySMSOptions): Promise<SMSResult> {
+export async function sendSafetySMS(
+  options: SafetySMSOptions,
+): Promise<SMSResult> {
   const {
     phoneNumber,
-    language = 'en',
+    language = "en",
     includeMatchDetails = false,
     matchDetails,
     trackingUrl = `${SMS_CONFIG.defaultTrackingUrl}/${generateTrackingId()}`,
@@ -164,7 +169,7 @@ export async function sendSafetySMS(options: SafetySMSOptions): Promise<SMSResul
   if (!isValidIndianPhoneNumber(phoneNumber)) {
     return {
       success: false,
-      error: 'Invalid phone number. Must be valid Indian number.',
+      error: "Invalid phone number. Must be valid Indian number.",
     };
   }
 
@@ -173,20 +178,21 @@ export async function sendSafetySMS(options: SafetySMSOptions): Promise<SMSResul
   if (!rateLimit.allowed) {
     return {
       success: false,
-      error: 'Rate limit exceeded. Please try again later.',
+      error: "Rate limit exceeded. Please try again later.",
     };
   }
 
   // Select template
-  const template = includeMatchDetails && matchDetails
-    ? SMS_TEMPLATES[language].safetyWithMatch
-    : SMS_TEMPLATES[language].safety;
+  const template =
+    includeMatchDetails && matchDetails
+      ? SMS_TEMPLATES[language].safetyWithMatch
+      : SMS_TEMPLATES[language].safety;
 
   // Replace placeholders
   const message = template
-    .replace('{trackingUrl}', trackingUrl)
-    .replace('{matchName}', matchDetails?.name || 'someone')
-    .replace('{timeRemaining}', '2 hours');
+    .replace("{trackingUrl}", trackingUrl)
+    .replace("{matchName}", matchDetails?.name || "someone")
+    .replace("{timeRemaining}", "2 hours");
 
   // In production, send via SMS provider (Twilio, MSG91, etc.)
   // For demo, we'll simulate the send
@@ -199,10 +205,10 @@ export async function sendSafetySMS(options: SafetySMSOptions): Promise<SMSResul
     });
 
     // Log for debugging (in production, use proper logging)
-    console.log('[Safety SMS Sent]', {
+    console.log("[Safety SMS Sent]", {
       to: phoneNumber,
       language,
-      template: includeMatchDetails ? 'safetyWithMatch' : 'safety',
+      template: includeMatchDetails ? "safetyWithMatch" : "safety",
       messageId: result.messageId,
     });
 
@@ -211,10 +217,10 @@ export async function sendSafetySMS(options: SafetySMSOptions): Promise<SMSResul
       messageId: result.messageId,
     };
   } catch (error) {
-    console.error('[Safety SMS Error]', error);
+    console.error("[Safety SMS Error]", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to send SMS',
+      error: error instanceof Error ? error.message : "Failed to send SMS",
     };
   }
 }
@@ -226,12 +232,12 @@ export async function sendLocationUpdateSMS(
   phoneNumber: string,
   trackingUrl: string,
   timeRemaining: string,
-  language: 'en' | 'hi' = 'en'
+  language: "en" | "hi" = "en",
 ): Promise<SMSResult> {
   const template = SMS_TEMPLATES[language].locationUpdate;
   const message = template
-    .replace('{trackingUrl}', trackingUrl)
-    .replace('{timeRemaining}', timeRemaining);
+    .replace("{trackingUrl}", trackingUrl)
+    .replace("{timeRemaining}", timeRemaining);
 
   return simulateSendSMS({
     to: phoneNumber,
@@ -246,7 +252,7 @@ export async function sendLocationUpdateSMS(
  */
 export async function sendSharingEndedSMS(
   phoneNumber: string,
-  language: 'en' | 'hi' = 'en'
+  language: "en" | "hi" = "en",
 ): Promise<SMSResult> {
   const template = SMS_TEMPLATES[language].sharingEnded;
 
@@ -264,10 +270,10 @@ export async function sendSharingEndedSMS(
 export async function sendEmergencySMS(
   phoneNumber: string,
   trackingUrl: string,
-  language: 'en' | 'hi' = 'en'
+  language: "en" | "hi" = "en",
 ): Promise<SMSResult> {
   const template = SMS_TEMPLATES[language].emergency;
-  const message = template.replace('{trackingUrl}', trackingUrl);
+  const message = template.replace("{trackingUrl}", trackingUrl);
 
   // Emergency SMS bypass rate limiting
   return simulateSendSMS({
@@ -275,7 +281,7 @@ export async function sendEmergencySMS(
     message,
     senderId: SMS_CONFIG.senderId,
     templateId: SMS_CONFIG.templateId,
-    priority: 'high',
+    priority: "high",
   });
 }
 
@@ -288,10 +294,10 @@ export async function sendEmergencySMS(
  */
 function isValidIndianPhoneNumber(phoneNumber: string): boolean {
   // Remove all non-digit characters
-  const digits = phoneNumber.replace(/\D/g, '');
+  const digits = phoneNumber.replace(/\D/g, "");
 
   // Check for +91 prefix or 10-digit number starting with 6-9
-  if (digits.startsWith('91') && digits.length === 12) {
+  if (digits.startsWith("91") && digits.length === 12) {
     return /^[6-9]\d{9}$/.test(digits.slice(2));
   }
 
@@ -306,8 +312,10 @@ function isValidIndianPhoneNumber(phoneNumber: string): boolean {
  * Generate unique tracking ID for location sharing
  */
 function generateTrackingId(): string {
-  return Math.random().toString(36).substring(2, 10) +
-         Date.now().toString(36).substring(4);
+  return (
+    Math.random().toString(36).substring(2, 10) +
+    Date.now().toString(36).substring(4)
+  );
 }
 
 /**
@@ -323,14 +331,14 @@ async function simulateSendSMS({
   message,
   senderId,
   templateId,
-  priority = 'normal',
+  priority = "normal",
 }: {
   to: string;
   message: string;
   senderId: string;
   templateId: string;
-  priority?: 'normal' | 'high';
-}): Promise<{ messageId: string }> {
+  priority?: "normal" | "high";
+}): Promise<SMSResult> {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -363,29 +371,29 @@ async function simulateSendSMS({
   });
   */
 
-  console.log('[SMS Provider Simulation]', {
+  console.log("[SMS Provider Simulation]", {
     to,
-    message: message.substring(0, 50) + '...',
+    message: message.substring(0, 50) + "...",
     senderId,
     templateId,
     priority,
     messageId,
   });
 
-  return { messageId };
+  return { success: true, messageId };
 }
 
 /**
  * Format phone number for display (mask middle digits)
  */
 export function formatPhoneNumberForDisplay(phoneNumber: string): string {
-  const digits = phoneNumber.replace(/\D/g, '');
+  const digits = phoneNumber.replace(/\D/g, "");
 
   if (digits.length === 10) {
     return `${digits.substring(0, 3)}*****${digits.substring(8)}`;
   }
 
-  if (digits.startsWith('91') && digits.length === 12) {
+  if (digits.startsWith("91") && digits.length === 12) {
     return `+91 ${digits.substring(2, 5)}*****${digits.substring(10)}`;
   }
 
@@ -398,7 +406,7 @@ export function formatPhoneNumberForDisplay(phoneNumber: string): string {
  */
 export function getSmsCharacterCount(message: string): {
   segments: number;
-  encoding: 'GSM-7' | 'Unicode';
+  encoding: "GSM-7" | "Unicode";
   charactersPerSegment: number;
 } {
   // Check if message contains non-GSM characters (Hindi = Unicode)
@@ -409,7 +417,7 @@ export function getSmsCharacterCount(message: string): {
 
   return {
     segments,
-    encoding: hasUnicode ? 'Unicode' : 'GSM-7',
+    encoding: hasUnicode ? "Unicode" : "GSM-7",
     charactersPerSegment,
   };
 }
