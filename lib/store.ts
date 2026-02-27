@@ -3,9 +3,9 @@
  * Implements persist middleware for critical data
  */
 
-import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
+import { create } from "zustand";
+import { persist, createJSONStorage, StateStorage } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Type Definitions
@@ -19,7 +19,7 @@ export interface User {
   avatarUrl?: string;
   isVerified: boolean;
   isPremium: boolean;
-  verificationLevel: 'bronze' | 'silver' | 'gold';
+  verificationLevel: "bronze" | "silver" | "gold";
   createdAt: string;
 }
 
@@ -28,7 +28,7 @@ export interface Profile {
   userId: string;
   name: string;
   age: number;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   dateOfBirth?: string;
   height?: string;
   weight?: string;
@@ -44,18 +44,18 @@ export interface Profile {
   city: string;
   state: string;
   country: string;
-  familyType: 'joint' | 'nuclear';
+  familyType: "joint" | "nuclear";
   fatherOccupation?: string;
   motherOccupation?: string;
   siblings?: string;
-  diet: 'vegetarian' | 'eggetarian' | 'non-vegetarian' | 'jain' | 'halal';
-  smoking: 'never' | 'occasionally' | 'regularly';
-  drinking: 'never' | 'occasionally' | 'regularly';
-  intent: 'marriage-soon' | 'serious-relationship' | 'friendship' | 'healing';
+  diet: "vegetarian" | "eggetarian" | "non-vegetarian" | "jain" | "halal";
+  smoking: "never" | "occasionally" | "regularly";
+  drinking: "never" | "occasionally" | "regularly";
+  intent: "marriage-soon" | "serious-relationship" | "friendship" | "healing";
   bio?: string;
   photos: Photo[];
   preferences: MatchPreferences;
-  verificationLevel: 'bronze' | 'silver' | 'gold';
+  verificationLevel: "bronze" | "silver" | "gold";
   onboardingComplete: boolean;
   onboardingStep: number;
 }
@@ -78,7 +78,7 @@ export interface MatchPreferences {
   education: string[];
   occupation: string[];
   diet: string[];
-  manglik: 'any' | 'yes' | 'no';
+  manglik: "any" | "yes" | "no";
   maritalStatus: string[];
 }
 
@@ -87,7 +87,7 @@ export interface Match {
   profile: Profile;
   compatibility: number;
   matchedAt: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: "pending" | "accepted" | "rejected";
   likedByMe: boolean;
   likedByThem: boolean;
 }
@@ -97,7 +97,7 @@ export interface Message {
   conversationId: string;
   senderId: string;
   senderName?: string;
-  type: 'text' | 'photo' | 'voice' | 'interest';
+  type: "text" | "photo" | "voice" | "interest";
   content: string;
   duration?: number; // for voice notes
   timestamp: string;
@@ -113,7 +113,7 @@ export interface Conversation {
     name: string;
     avatarUrl?: string;
     isOnline: boolean;
-    verificationLevel: 'bronze' | 'silver' | 'gold';
+    verificationLevel: "bronze" | "silver" | "gold";
   };
   lastMessage?: Message;
   unreadCount: number;
@@ -129,7 +129,7 @@ export interface MatchFilters {
   caste: string;
   education: string;
   diet: string;
-  manglik: 'any' | 'yes' | 'no';
+  manglik: "any" | "yes" | "no";
   intent: string;
   distance: number;
 }
@@ -248,7 +248,7 @@ const createAuthStore = () =>
           }),
       })),
       {
-        name: 'bandhan-auth-storage',
+        name: "bandhan-auth-storage",
         storage: createJSONStorage(() => createCustomStorage()),
         partialize: (state) => ({
           user: state.user,
@@ -264,8 +264,8 @@ const createAuthStore = () =>
           }
           return persistedState as AuthState;
         },
-      }
-    )
+      },
+    ),
   );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -347,7 +347,7 @@ const createProfileStore = () =>
           set((state) => {
             if (state.profileData) {
               state.profileData.photos = state.profileData.photos.filter(
-                (p) => p.id !== photoId
+                (p) => p.id !== photoId,
               );
             }
           }),
@@ -377,7 +377,7 @@ const createProfileStore = () =>
           }),
       })),
       {
-        name: 'bandhan-profile-storage',
+        name: "bandhan-profile-storage",
         storage: createJSONStorage(() => createCustomStorage()),
         partialize: (state) => ({
           profileData: state.profileData,
@@ -385,8 +385,8 @@ const createProfileStore = () =>
           onboardingStep: state.onboardingStep,
         }),
         version: 1,
-      }
-    )
+      },
+    ),
   );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -414,7 +414,11 @@ interface MatchActions {
   passUser: (userId: string) => void;
   setFilters: (filters: Partial<MatchFilters>) => void;
   resetFilters: () => void;
-  setDailyLimit: (limit: { used: number; total: number; resetsAt: string }) => void;
+  setDailyLimit: (limit: {
+    used: number;
+    total: number;
+    resetsAt: string;
+  }) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string) => void;
   clearError: () => void;
@@ -431,19 +435,19 @@ const createMatchStore = () =>
       filters: {
         ageMin: 22,
         ageMax: 35,
-        location: '',
-        religion: '',
-        caste: '',
-        education: '',
-        diet: '',
-        manglik: 'any',
-        intent: '',
+        location: "",
+        religion: "",
+        caste: "",
+        education: "",
+        diet: "",
+        manglik: "any",
+        intent: "",
         distance: 50,
       },
       dailyLimit: {
         used: 0,
         total: 5,
-        resetsAt: '',
+        resetsAt: "",
       },
       isLoading: false,
       error: null,
@@ -483,9 +487,7 @@ const createMatchStore = () =>
 
       passUser: (userId) =>
         set((state) => {
-          state.matches = state.matches.filter(
-            (m) => m.profile.id !== userId
-          );
+          state.matches = state.matches.filter((m) => m.profile.id !== userId);
         }),
 
       setFilters: (filters) =>
@@ -498,13 +500,13 @@ const createMatchStore = () =>
           state.filters = {
             ageMin: 22,
             ageMax: 35,
-            location: '',
-            religion: '',
-            caste: '',
-            education: '',
-            diet: '',
-            manglik: 'any',
-            intent: '',
+            location: "",
+            religion: "",
+            caste: "",
+            education: "",
+            diet: "",
+            manglik: "any",
+            intent: "",
             distance: 50,
           };
         }),
@@ -528,7 +530,7 @@ const createMatchStore = () =>
         set((state) => {
           state.error = null;
         }),
-    }))
+    })),
   );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -545,7 +547,10 @@ interface ChatState {
 interface ChatActions {
   setConversations: (conversations: Conversation[]) => void;
   addConversation: (conversation: Conversation) => void;
-  updateConversation: (conversationId: string, data: Partial<Conversation>) => void;
+  updateConversation: (
+    conversationId: string,
+    data: Partial<Conversation>,
+  ) => void;
   removeConversation: (conversationId: string) => void;
   setCurrentChat: (chat: Conversation | null) => void;
   addMessage: (conversationId: string, message: Message) => void;
@@ -582,7 +587,7 @@ const createChatStore = () =>
       updateConversation: (conversationId, data) =>
         set((state) => {
           const conversation = state.conversations.find(
-            (c) => c.id === conversationId
+            (c) => c.id === conversationId,
           );
           if (conversation) {
             Object.assign(conversation, data);
@@ -595,7 +600,7 @@ const createChatStore = () =>
       removeConversation: (conversationId) =>
         set((state) => {
           state.conversations = state.conversations.filter(
-            (c) => c.id !== conversationId
+            (c) => c.id !== conversationId,
           );
           if (state.currentChat?.id === conversationId) {
             state.currentChat = null;
@@ -610,7 +615,7 @@ const createChatStore = () =>
       addMessage: (conversationId, message) =>
         set((state) => {
           const conversation = state.conversations.find(
-            (c) => c.id === conversationId
+            (c) => c.id === conversationId,
           );
           if (conversation) {
             conversation.messages.push(message);
@@ -628,7 +633,7 @@ const createChatStore = () =>
       markAsRead: (conversationId) =>
         set((state) => {
           const conversation = state.conversations.find(
-            (c) => c.id === conversationId
+            (c) => c.id === conversationId,
           );
           if (conversation) {
             conversation.unreadCount = 0;
@@ -663,7 +668,7 @@ const createChatStore = () =>
         set((state) => {
           state.error = null;
         }),
-    }))
+    })),
   );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -682,15 +687,17 @@ export const useChatStore = createChatStore();
  * Clear all persisted stores (for logout)
  */
 export const clearAllStores = () => {
-  localStorage.removeItem('bandhan-auth-storage');
-  localStorage.removeItem('bandhan-profile-storage');
+  localStorage.removeItem("bandhan-auth-storage");
+  localStorage.removeItem("bandhan-profile-storage");
   // Keep match and chat stores as they might be useful
 };
 
 /**
  * Clear specific store
  */
-export const clearStore = (storeName: 'auth' | 'profile' | 'match' | 'chat') => {
+export const clearStore = (
+  storeName: "auth" | "profile" | "match" | "chat",
+) => {
   const storageKey = `bandhan-${storeName}-storage`;
   localStorage.removeItem(storageKey);
 };
@@ -699,18 +706,19 @@ export const clearStore = (storeName: 'auth' | 'profile' | 'match' | 'chat') => 
  * Get store hydration status
  */
 export const getHydrationStatus = () => ({
-  auth: !!localStorage.getItem('bandhan-auth-storage'),
-  profile: !!localStorage.getItem('bandhan-profile-storage'),
-  match: !!localStorage.getItem('bandhan-match-storage'),
-  chat: !!localStorage.getItem('bandhan-chat-storage'),
+  auth: !!localStorage.getItem("bandhan-auth-storage"),
+  profile: !!localStorage.getItem("bandhan-profile-storage"),
+  match: !!localStorage.getItem("bandhan-match-storage"),
+  chat: !!localStorage.getItem("bandhan-chat-storage"),
 });
 
 /**
  * Force rehydrate all stores
+ * Only auth and profile stores use the persist middleware
  */
 export const rehydrateAllStores = async () => {
-  const stores = [useAuthStore, useProfileStore, useMatchStore, useChatStore];
-  await Promise.all(stores.map((store) => store.persist.rehydrate()));
+  const persistedStores = [useAuthStore, useProfileStore];
+  await Promise.all(persistedStores.map((store) => store.persist.rehydrate()));
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
