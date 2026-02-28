@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Devanagari } from "next/font/google";
+import {
+  Inter,
+  Noto_Sans_Devanagari,
+  Comic_Neue,
+  Roboto,
+} from "next/font/google";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { BottomNav } from "@/components/BottomNav";
+import { PerfInit } from "@/components/PerfInit";
+import { A11ySkipLink } from "@/components/A11ySkipLink";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { ConsentBanner } from "@/components/ConsentBanner";
 import "./globals.css";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Font Configuration
-// Optimized for Indian languages with proper Devanagari rendering
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Inter Font (English/Latin)
- * - Clean, modern sans-serif
- * - Optimized for UI text
- * - Subset: latin (for smaller bundle size)
- */
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -22,26 +22,31 @@ const inter = Inter({
   fallback: ["system-ui", "arial"],
 });
 
-/**
- * Noto Sans Devanagari (Hindi)
- * - Google's Noto family for Devanagari script
- * - Proper rendering of Hindi conjuncts and matras
- * - Weights: 300-800 for full typography scale
- * - Optimized subset for Hindi
- */
+const roboto = Roboto({
+  subsets: ["latin"],
+  variable: "--font-roboto",
+  display: "swap",
+  weight: ["400", "500", "700"],
+  fallback: ["system-ui", "arial"],
+});
+
+const comicNeue = Comic_Neue({
+  subsets: ["latin"],
+  variable: "--font-comic",
+  display: "swap",
+  weight: ["400", "700"],
+  fallback: ["system-ui", "cursive"],
+});
+
 const notoSansDevanagari = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
   variable: "--font-hindi",
   display: "swap",
-  preload: true,
-  weight: ["300", "400", "500", "600", "700", "800"],
+  preload: false, // Only preload for Hindi users (detected at runtime)
+  weight: ["400", "600", "700"], // Reduced from 6 weights — saves ~100KB
   fallback: ["system-ui", "arial"],
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Metadata
-// Optimized for Indian audience with bilingual support
-// ─────────────────────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
   title: {
     default: "Bandhan AI - Find Your Perfect Match",
@@ -60,10 +65,6 @@ export const metadata: Metadata = {
     "matrimony",
     "love",
     "compatibility",
-    "हिंदी मैचमेकिंग",
-    "भारतीय डेटिंग",
-    "शादी",
-    "विवाह",
   ],
   authors: [{ name: "Bandhan AI Team" }],
   creator: "Bandhan AI",
@@ -76,22 +77,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || "https://bandhan.ai",
   ),
-  alternates: {
-    canonical: "/",
-    languages: {
-      "en-IN": "/en",
-      "hi-IN": "/hi",
-    },
-  },
   openGraph: {
     type: "website",
     locale: "en_IN",
-    alternateLocale: ["hi_IN"],
     url: "/",
     siteName: "Bandhan AI",
     title: "Bandhan AI - Find Your Perfect Match",
     description:
-      "AI-powered matchmaking for meaningful connections. Designed for modern Indians seeking love and companionship.",
+      "AI-powered matchmaking for meaningful connections. Designed for modern Indians.",
     images: [
       {
         url: "/og-image.png",
@@ -119,10 +112,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-  },
-  category: "lifestyle",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
@@ -130,10 +119,6 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Root Layout
-// Wraps app with LanguageProvider for bilingual support
-// ─────────────────────────────────────────────────────────────────────────────
 export default function RootLayout({
   children,
 }: {
@@ -141,70 +126,66 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="hi"
+      lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${notoSansDevanagari.variable} dark`}
+      className={`${inter.variable} ${roboto.variable} ${comicNeue.variable} ${notoSansDevanagari.variable}`}
     >
       <head>
-        {/* Preconnect to Google Fonts for faster loading */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
+        {/* ── iOS PWA Support ────────────────────────────────────── */}
+        {/* Tells iOS Safari this site can run as a standalone app */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        {/* Status bar: black-translucent = content extends under status bar */}
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
         />
-
-        {/* Font display swap for better CLS */}
-        <style>{`
-          /* Ensure fonts load without FOIT */
-          @font-face {
-            font-display: swap;
-            font-family: 'Inter';
-            font-style: normal;
-            font-weight: 100 900;
-            src: url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
-          }
-
-          @font-face {
-            font-display: swap;
-            font-family: 'Noto Sans Devanagari';
-            font-style: normal;
-            font-weight: 300 800;
-            src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@300;400;500;600;700;800&display=swap');
-          }
-
-          /* Font classes for dynamic switching */
-          .font-inter {
-            font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          }
-
-          .font-hindi {
-            font-family: var(--font-hindi), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          }
-
-          /* Hindi text needs more line height for proper matra rendering */
-          .font-hindi {
-            line-height: 1.8;
-            letter-spacing: 0.02em;
-          }
-
-          /* Prevent layout shift during font load */
-          html {
-            font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-          }
-
-          /* Proper Devanagari rendering */
-          .font-hindi * {
-            text-rendering: optimizeLegibility;
-            -webkit-font-feature-settings: 'liga' 1, 'calt' 1;
-            font-feature-settings: 'liga' 1, 'calt' 1;
-          }
-        `}</style>
+        <meta name="apple-mobile-web-app-title" content="Bandhan AI" />
+        {/* Apple touch icon (180x180) — generated by scripts/generate-icons.mjs */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* iOS splash screens (launch images) */}
+        {/* iPhone 14 Pro Max (430x932) */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/icon-512x512.png"
+          media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"
+        />
+        {/* iPhone 13/14 (390x844) */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/icon-512x512.png"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+        />
+        {/* iPhone SE (375x667) */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/icon-512x512.png"
+          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+        />
+        {/* ── Theme colour (matches Navbar charcoal) ──────────── */}
+        <meta name="theme-color" content="#212121" />
+        {/* ── Manifest (linked in metadata too, but explicit for older browsers) */}
+        <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="antialiased">
-        <LanguageProvider defaultLanguage="en">{children}</LanguageProvider>
+      <body
+        className={`${roboto.className} text-[#212121]`}
+        style={{
+          backgroundColor: "#FFFFFF",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(0,0,0,0.015) 15px, rgba(0,0,0,0.015) 16px), repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(0,0,0,0.015) 15px, rgba(0,0,0,0.015) 16px)",
+        }}
+      >
+        <A11ySkipLink />
+        <PerfInit />
+        <LanguageProvider defaultLanguage="en">
+          <AuthProvider>
+            <main id="main-content" tabIndex={-1} className="outline-none">
+              {children}
+            </main>
+            <BottomNav />
+            <InstallPrompt />
+            <ConsentBanner />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

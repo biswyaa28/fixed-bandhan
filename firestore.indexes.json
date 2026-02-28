@@ -1,0 +1,254 @@
+{
+  "_comment": [
+    "─────────────────────────────────────────────────────────────────────",
+    " Bandhan AI — Firestore Composite Indexes",
+    " Region: asia-south1 (Mumbai)",
+    "─────────────────────────────────────────────────────────────────────",
+    "",
+    " USAGE:",
+    "   firebase deploy --only firestore:indexes",
+    "",
+    " NOTES:",
+    " - Single-field indexes are created automatically by Firestore.",
+    " - Only COMPOSITE indexes (queries on 2+ fields) need entries here.",
+    " - If a query fails with 'FAILED_PRECONDITION', the error link",
+    "   will auto-generate the index definition for you.",
+    " - Indexes can take 5-10 minutes to build after deploy.",
+    " - Collection names match lib/firebase/schema.ts → COLLECTIONS.",
+    "─────────────────────────────────────────────────────────────────────"
+  ],
+
+  "indexes": [
+    {
+      "_comment": "users: Discovery feed — filter by gender + sort by profileCompletion",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "gender", "order": "ASCENDING" },
+        { "fieldPath": "profileCompletion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "users: Discovery feed — filter by city + sort by profileCompletion",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "profileCompletion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "users: Discovery feed — filter by intent + sort by createdAt",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "intent", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "users: Discovery feed — filter by verificationLevel + sort by profileCompletion",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verificationLevel", "order": "ASCENDING" },
+        { "fieldPath": "profileCompletion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "users: Discovery feed — filter by city + gender + age range",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "gender", "order": "ASCENDING" },
+        { "fieldPath": "age", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "users: Discovery feed — filter by diet + intent",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "diet", "order": "ASCENDING" },
+        { "fieldPath": "intent", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "matches: My matches — filter by user1Id + sort by lastMessageAt",
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user1Id", "order": "ASCENDING" },
+        { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "matches: My matches — filter by user2Id + sort by lastMessageAt",
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user2Id", "order": "ASCENDING" },
+        { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "matches: Filter by user1Id + status + sort by matchedAt",
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user1Id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "matchedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "matches: Filter by user2Id + status + sort by matchedAt",
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user2Id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "matchedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "messages: Chat thread — filter by matchId + sort by timestamp",
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "matchId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "messages: Unread count — filter by matchId + status",
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "matchId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "interests: Sent by me — filter by fromUserId + sort by timestamp",
+      "collectionGroup": "interests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fromUserId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "interests: Received — filter by toUserId + isSeen + sort by timestamp",
+      "collectionGroup": "interests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toUserId", "order": "ASCENDING" },
+        { "fieldPath": "isSeen", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "interests: Check duplicate — filter by fromUserId + toUserId",
+      "collectionGroup": "interests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fromUserId", "order": "ASCENDING" },
+        { "fieldPath": "toUserId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "profileVisits: Who visited me — filter by visitedUserId + sort by timestamp",
+      "collectionGroup": "profileVisits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visitedUserId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "profileVisits: My visits — filter by visitorId + sort by timestamp",
+      "collectionGroup": "profileVisits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visitorId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "notifications: User's unread — filter by userId + isRead + sort by createdAt",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "isRead", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "notifications: User's by type — filter by userId + type + sort by createdAt",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "successStories: Approved + featured — sort by submittedAt",
+      "collectionGroup": "successStories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isApproved", "order": "ASCENDING" },
+        { "fieldPath": "isFeatured", "order": "DESCENDING" },
+        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "reports: Moderation queue — filter by status + sort by createdAt",
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+
+  "fieldOverrides": [
+    {
+      "_comment": "Exempt bio text from single-field indexing to save costs",
+      "collectionGroup": "users",
+      "fieldPath": "bio",
+      "indexes": []
+    },
+    {
+      "_comment": "Exempt message content from indexing",
+      "collectionGroup": "messages",
+      "fieldPath": "content",
+      "indexes": []
+    },
+    {
+      "_comment": "Exempt success story quotes from indexing",
+      "collectionGroup": "successStories",
+      "fieldPath": "quoteEn",
+      "indexes": []
+    },
+    {
+      "_comment": "Exempt success story Hindi quotes from indexing",
+      "collectionGroup": "successStories",
+      "fieldPath": "quoteHi",
+      "indexes": []
+    },
+    {
+      "_comment": "Exempt report comments from indexing",
+      "collectionGroup": "reports",
+      "fieldPath": "comment",
+      "indexes": []
+    }
+  ]
+}

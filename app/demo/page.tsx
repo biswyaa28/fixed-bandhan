@@ -10,11 +10,11 @@
  * - Demo instructions
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Heart,
   Sparkles,
@@ -24,14 +24,17 @@ import {
   ExternalLink,
   X,
   AlertTriangle,
-} from 'lucide-react';
-import { DemoAccountCard, type DemoAccount } from '@/components/DemoAccountCard';
-import { FeatureShowcase } from '@/components/FeatureShowcase';
-import { PresenterControls } from '@/components/PresenterControls';
-import { DemoInstructions } from '@/components/DemoInstructions';
-import { enableDemoMode, selectDemoUser } from '@/lib/mock-auth';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+} from "lucide-react";
+import {
+  DemoAccountCard,
+  type DemoAccount,
+} from "@/components/DemoAccountCard";
+import { FeatureShowcase } from "@/components/FeatureShowcase";
+import { PresenterControls } from "@/components/PresenterControls";
+import { DemoInstructions } from "@/components/DemoInstructions";
+import { enableDemoMode, selectDemoUser } from "@/lib/mock-auth";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return twMerge(clsx(classes));
@@ -42,68 +45,78 @@ function cn(...classes: (string | undefined | null | false)[]) {
 // ─────────────────────────────────────────────────────────────────────────────
 const DEMO_ACCOUNTS: DemoAccount[] = [
   {
-    id: 'demo_priya',
-    name: 'Priya Sharma',
+    id: "demo_priya",
+    name: "Priya Sharma",
     age: 26,
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    gender: 'female',
-    verificationLevel: 'gold',
-    intent: 'marriage-soon',
-    education: 'MBA, IIM Ahmedabad',
-    occupation: 'Product Manager at Google',
+    city: "Mumbai",
+    state: "Maharashtra",
+    gender: "female",
+    verificationLevel: "gold",
+    intent: "marriage-soon",
+    education: "MBA, IIM Ahmedabad",
+    occupation: "Product Manager at Google",
     avatarUrl:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face',
-    bio: 'Ambitious yet family-oriented. Love traveling, reading, and trying new cuisines.',
-    features: ['Verified Profile', 'Premium Member', 'Voice Intro', 'Family Dashboard'],
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face",
+    bio: "Ambitious yet family-oriented. Love traveling, reading, and trying new cuisines.",
+    features: [
+      "Verified Profile",
+      "Premium Member",
+      "Voice Intro",
+      "Family Dashboard",
+    ],
   },
   {
-    id: 'demo_rohan',
-    name: 'Rohan Verma',
+    id: "demo_rohan",
+    name: "Rohan Verma",
     age: 28,
-    city: 'New Delhi',
-    state: 'Delhi',
-    gender: 'male',
-    verificationLevel: 'silver',
-    intent: 'serious-relationship',
-    education: 'B.Tech, IIT Delhi',
-    occupation: 'Software Engineer at Microsoft',
+    city: "New Delhi",
+    state: "Delhi",
+    gender: "male",
+    verificationLevel: "silver",
+    intent: "serious-relationship",
+    education: "B.Tech, IIT Delhi",
+    occupation: "Software Engineer at Microsoft",
     avatarUrl:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
-    bio: 'Tech enthusiast with a passion for music and sports. Believe in traditional values.',
-    features: ['Verified Profile', 'Voice Intro', '80% Match Rate'],
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    bio: "Tech enthusiast with a passion for music and sports. Believe in traditional values.",
+    features: ["Verified Profile", "Voice Intro", "80% Match Rate"],
   },
   {
-    id: 'demo_anjali',
-    name: 'Anjali Iyer',
+    id: "demo_anjali",
+    name: "Anjali Iyer",
     age: 24,
-    city: 'Bangalore',
-    state: 'Karnataka',
-    gender: 'female',
-    verificationLevel: 'bronze',
-    intent: 'friendship',
-    education: 'B.Des, NID Bangalore',
-    occupation: 'UX Designer at Flipkart',
+    city: "Bangalore",
+    state: "Karnataka",
+    gender: "female",
+    verificationLevel: "bronze",
+    intent: "friendship",
+    education: "B.Des, NID Bangalore",
+    occupation: "UX Designer at Flipkart",
     avatarUrl:
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
-    bio: 'Creative soul who loves art, dance, and exploring new places.',
-    features: ['Verified Profile', 'Creative Professional', 'Active User'],
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
+    bio: "Creative soul who loves art, dance, and exploring new places.",
+    features: ["Verified Profile", "Creative Professional", "Active User"],
   },
   {
-    id: 'demo_vikram',
-    name: 'Vikram Krishnan',
+    id: "demo_vikram",
+    name: "Vikram Krishnan",
     age: 30,
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    gender: 'male',
-    verificationLevel: 'gold',
-    intent: 'marriage-soon',
-    education: 'MS, IIT Madras',
-    occupation: 'Data Scientist at Amazon',
+    city: "Chennai",
+    state: "Tamil Nadu",
+    gender: "male",
+    verificationLevel: "gold",
+    intent: "marriage-soon",
+    education: "MS, IIT Madras",
+    occupation: "Data Scientist at Amazon",
     avatarUrl:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
-    bio: 'Family-oriented person with strong values. Love Carnatic music and cooking.',
-    features: ['Verified Profile', 'Premium Member', 'High Compatibility', 'Family Approved'],
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face",
+    bio: "Family-oriented person with strong values. Love Carnatic music and cooking.",
+    features: [
+      "Verified Profile",
+      "Premium Member",
+      "High Compatibility",
+      "Family Approved",
+    ],
   },
 ];
 
@@ -122,66 +135,69 @@ export default function DemoLandingPage() {
   // Enable demo mode on mount
   useEffect(() => {
     enableDemoMode();
-    console.log('🎭 Demo mode enabled');
+    console.log("🎭 Demo mode enabled");
   }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+D: Toggle demo mode
-      if (e.ctrlKey && e.key === 'd') {
+      if (e.ctrlKey && e.key === "d") {
         e.preventDefault();
         setDemoMode((prev) => !prev);
       }
       // Ctrl+R: Reset demo
-      if (e.ctrlKey && e.key === 'r') {
+      if (e.ctrlKey && e.key === "r") {
         e.preventDefault();
         handleReset();
       }
       // Ctrl+F: Show all features
-      if (e.ctrlKey && e.key === 'f') {
+      if (e.ctrlKey && e.key === "f") {
         e.preventDefault();
         setShowAllFeatures((prev) => !prev);
       }
       // Ctrl+K: Toggle console logs
-      if (e.ctrlKey && e.key === 'k') {
+      if (e.ctrlKey && e.key === "k") {
         e.preventDefault();
         setConsoleLogs((prev) => !prev);
       }
       // Esc: Close modals
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setShowInstructions(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Handle account selection
-  const handleSelectAccount = useCallback(async (account: DemoAccount) => {
-    setIsLoading(true);
-    console.log('👤 Selecting demo account:', account.name);
+  const handleSelectAccount = useCallback(
+    async (account: DemoAccount) => {
+      setIsLoading(true);
+      console.log("👤 Selecting demo account:", account.name);
 
-    try {
-      // Select demo user
-      selectDemoUser(account.id);
+      try {
+        // Select demo user
+        selectDemoUser(account.id);
 
-      // Simulate login delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Simulate login delay
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Redirect to matches page
-      router.push('/matches');
-    } catch (error) {
-      console.error('Error selecting account:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [router]);
+        // Redirect to matches page
+        router.push("/matches");
+      } catch (error) {
+        console.error("Error selecting account:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [router],
+  );
 
   // Handle reset
   const handleReset = useCallback(() => {
-    console.log('🔄 Resetting demo data...');
+    console.log("🔄 Resetting demo data...");
     localStorage.clear();
     enableDemoMode();
     window.location.reload();
@@ -197,16 +213,16 @@ export default function DemoLandingPage() {
 
   const handleToggleShowAllFeatures = useCallback(() => {
     setShowAllFeatures((prev) => !prev);
-    console.log('✨ Show all features:', !showAllFeatures);
+    console.log("✨ Show all features:", !showAllFeatures);
   }, [showAllFeatures]);
 
   const handleToggleConsoleLogs = useCallback(() => {
     setConsoleLogs((prev) => !prev);
-    console.log('📋 Console logs:', !consoleLogs);
+    console.log("📋 Console logs:", !consoleLogs);
   }, [consoleLogs]);
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <div className="min-h-screen bg-white">
       {/* Background Decorations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-96 h-96 bg-saffron-500/10 rounded-full blur-3xl" />
@@ -241,7 +257,7 @@ export default function DemoLandingPage() {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push("/")}
                 className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-colors"
               >
                 Exit Demo
@@ -266,7 +282,7 @@ export default function DemoLandingPage() {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ type: 'spring', delay: 0.2 }}
+              transition={{ type: "spring", delay: 0.2 }}
               className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-saffron-500/20 to-rose-500/20 border border-saffron-500/30 mb-6"
             >
               <Heart className="w-10 h-10 text-gradient-brand" />
@@ -389,7 +405,7 @@ export default function DemoLandingPage() {
           <div className="text-center">
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             >
               <Sparkles className="w-10 h-10 text-saffron-400 mx-auto mb-4" />
             </motion.div>

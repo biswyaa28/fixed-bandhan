@@ -194,29 +194,31 @@ function ChatListItem({
     switch (msg.type) {
       case "photo":
         return (
-          <span className="flex items-center space-x-1.5 text-midnight-400">
-            <Image className="w-4 h-4" />
+          <span className="flex items-center gap-1 text-ink-400">
+            <Image className="w-3 h-3" />
             <span>Photo</span>
           </span>
         );
       case "voice":
         return (
-          <span className="flex items-center space-x-1.5 text-midnight-400">
-            <Mic className="w-4 h-4" />
+          <span className="flex items-center gap-1 text-ink-400">
+            <Mic className="w-3 h-3" />
             <span>Voice note</span>
           </span>
         );
       case "interest":
         return (
-          <span className="flex items-center space-x-1.5 text-saffron-400">
-            <Heart className="w-4 h-4" />
+          <span className="flex items-center gap-1 text-blush-500">
+            <Heart className="w-3 h-3" />
             <span>Interest sent</span>
           </span>
         );
       default:
         return (
-          <span className="text-midnight-300 truncate">
-            {msg.isFromMe && <span className="text-midnight-400">You: </span>}
+          <span className="truncate text-ink-400">
+            {msg.isFromMe && (
+              <span className="text-ink-500 font-medium">You: </span>
+            )}
             {msg.text}
           </span>
         );
@@ -228,79 +230,93 @@ function ChatListItem({
     return lastActive;
   };
 
+  const avatarColors = [
+    "bg-lavender-100 text-lavender-700",
+    "bg-blush-100 text-blush-700",
+    "bg-peach-100 text-peach-700",
+    "bg-sage-100 text-sage-700",
+    "bg-sky-100 text-sky-700",
+  ];
+  const colorIdx = conversation.name.charCodeAt(0) % avatarColors.length;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex items-center space-x-3 p-4 rounded-2xl cursor-pointer",
-        "glass-sm border border-white/5 hover:border-white/10 hover:bg-white/5",
-        "transition-all duration-200",
+        "flex items-center gap-3.5 px-4 py-3.5 cursor-pointer",
+        "border-b border-ink-50 hover:bg-ink-50/60",
+        "transition-colors duration-100",
+        conversation.unreadCount > 0 && "bg-lavender-50/40",
       )}
     >
-      {/* Avatar with Verification */}
-      <div className="relative flex-shrink-0">
-        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/10">
-          <div className="w-full h-full bg-gradient-to-br from-violet-500/20 to-saffron-500/20 flex items-center justify-center">
-            <span className="text-lg font-bold text-violet-400">
-              {conversation.name.charAt(0)}
-            </span>
-          </div>
+      {/* Avatar */}
+      <div className="relative shrink-0">
+        <div
+          className={cn(
+            "w-12 h-12 rounded-2xl flex items-center justify-center text-base font-bold border",
+            avatarColors[colorIdx],
+            "border-white shadow-sm",
+          )}
+        >
+          {conversation.name.charAt(0)}
         </div>
-        {/* Verification Badge Overlay */}
-        <div className="absolute -bottom-1 -right-1">
-          <VerificationBadge level={conversation.verificationLevel} size="xs" />
-        </div>
-        {/* Online Indicator */}
         {conversation.isOnline && (
-          <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-midnight-900" />
+          <>
+            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-sage-400 border-2 border-white block" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-sage-400 animate-ping opacity-60" />
+          </>
         )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Name & Last Active */}
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-midnight-100 truncate">
+        <div className="flex items-center justify-between mb-0.5">
+          <h3
+            className={cn(
+              "text-[14px] truncate",
+              conversation.unreadCount > 0
+                ? "font-bold text-ink-900"
+                : "font-semibold text-ink-700",
+            )}
+          >
             {conversation.name}
           </h3>
           <span
             className={cn(
-              "text-xs flex-shrink-0",
-              conversation.isOnline ? "text-emerald-400" : "text-midnight-500",
+              "text-[11px] shrink-0 ml-2 tabular-nums",
+              conversation.isOnline
+                ? "text-sage-500 font-medium"
+                : "text-ink-300",
             )}
           >
             {formatLastActive(conversation.lastActive)}
           </span>
         </div>
 
-        {/* Last Message & Time */}
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0 flex items-center space-x-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0 text-xs text-ink-400 truncate">
             {getMessagePreview(conversation.lastMessage)}
           </div>
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            <span className="text-xs text-midnight-500">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-ink-300 tabular-nums">
               {conversation.lastMessage.timestamp}
             </span>
             {conversation.unreadCount > 0 && (
-              <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-gradient-to-r from-saffron-500 to-rose-500 text-[10px] font-bold text-white">
+              <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-ink-900 text-[10px] font-bold text-white">
                 {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
               </span>
             )}
           </div>
         </div>
 
-        {/* Match Date Badge */}
-        <div className="mt-2 flex items-center space-x-1.5">
-          <Clock className="w-3 h-3 text-midnight-500" />
-          <span className="text-[10px] text-midnight-500">
-            Matched {conversation.matchedDate}
-          </span>
-        </div>
+        {/* Match date */}
+        <p className="text-[10px] text-ink-300 mt-0.5 flex items-center gap-1">
+          <Clock className="w-2.5 h-2.5" />
+          Matched {conversation.matchedDate}
+        </p>
       </div>
     </motion.div>
   );
@@ -311,24 +327,27 @@ function EmptyState() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-16 px-8 text-center"
+      className="flex flex-col items-center justify-center py-20 px-8 text-center"
     >
-      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-saffron-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center mb-6">
-        <MessageCircle className="w-10 h-10 text-midnight-400" />
+      <div className="w-20 h-20 rounded-3xl bg-lavender-100 border border-lavender-200 flex items-center justify-center mb-5 shadow-sm">
+        <MessageCircle
+          className="w-9 h-9 text-lavender-400"
+          strokeWidth={1.5}
+        />
       </div>
-      <h3 className="text-xl font-bold text-midnight-50 mb-2">
+      <h3 className="text-lg font-bold text-ink-900 mb-1.5">
         No conversations yet
       </h3>
-      <p className="text-midnight-300 text-sm mb-6">
-        Start exploring matches to begin chatting!
+      <p className="text-sm text-ink-500 mb-6 max-w-xs leading-relaxed">
+        Start exploring matches to begin meaningful conversations!
       </p>
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className="px-6 py-3 rounded-xl bg-gradient-to-r from-saffron-500 to-violet-500 text-white font-semibold hover:shadow-saffron-glow transition-shadow"
+      <motion.a
+        href="/matches"
+        whileTap={{ scale: 0.97 }}
+        className="px-6 py-2.5 rounded-2xl bg-ink-900 text-white text-sm font-semibold hover:bg-ink-700 transition-colors"
       >
         Explore Matches
-      </motion.button>
+      </motion.a>
     </motion.div>
   );
 }
@@ -357,43 +376,49 @@ function SearchModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md z-40"
+            className="fixed inset-0 bg-ink-900/20 backdrop-blur-sm z-40"
           />
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-b from-midnight-900 to-midnight-950 rounded-t-3xl border-t border-white/10 max-h-[80vh] overflow-hidden"
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[82vh] overflow-hidden safe-bottom"
           >
-            <div className="p-4 safe-top">
-              {/* Search Input */}
-              <div className="flex items-center space-x-3 mb-4">
+            <div className="p-4">
+              {/* Handle */}
+              <div className="w-10 h-1 bg-ink-200 rounded-full mx-auto mb-4" />
+
+              {/* Search input */}
+              <div className="flex items-center gap-2 mb-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-midnight-400" />
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400"
+                    strokeWidth={1.5}
+                  />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search conversations..."
+                    placeholder="Search conversations…"
                     autoFocus
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-midnight-100 placeholder:text-midnight-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-ink-200 bg-ink-50 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100"
                   />
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-3 rounded-xl glass-sm hover:bg-white/10 transition-colors"
+                  className="p-2.5 rounded-xl border border-ink-200 text-ink-500 hover:bg-ink-50 hover:text-ink-700 transition-colors"
                 >
-                  <X className="w-5 h-5 text-midnight-300" />
+                  <X className="w-4 h-4" strokeWidth={2} />
                 </button>
               </div>
 
               {/* Results */}
-              <div className="overflow-y-auto max-h-[60vh] space-y-2">
+              <div className="overflow-y-auto max-h-[60vh]">
                 {filtered.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-midnight-400 text-sm">
-                      {query ? "No matches found" : "Start typing to search"}
+                  <div className="text-center py-10">
+                    <p className="text-sm text-ink-400">
+                      {query ? "No results found" : "Start typing to search"}
                     </p>
                   </div>
                 ) : (
@@ -464,101 +489,95 @@ export default function ChatListPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-hero px-4 py-8 safe-top safe-bottom pb-24">
-      {/* Background Decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-saffron-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-violet-500/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gradient-brand">Messages</h1>
-            <p className="text-sm text-midnight-300">
-              {conversations.length} conversations
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
+    <div className="min-h-screen bg-white safe-top pb-24">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-ink-100 safe-top">
+        <div className="max-w-lg mx-auto px-4 pt-14 pb-3">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-[1.2rem] font-bold text-ink-900 tracking-tight">
+                Messages
+              </h1>
+              <p className="text-[11px] text-ink-400">
+                {conversations.filter((c) => c.unreadCount > 0).length} unread
+              </p>
+            </div>
             <button
               onClick={() => setShowSearch(true)}
-              className="p-3 rounded-xl glass-sm border border-white/10 hover:border-white/20 transition-colors"
+              className="p-2 rounded-xl border border-ink-200 text-ink-500 hover:text-ink-700 hover:bg-ink-50 transition-colors"
             >
-              <Search className="w-5 h-5 text-midnight-300" />
-            </button>
-            <button className="p-3 rounded-xl glass-sm border border-white/10 hover:border-white/20 transition-colors">
-              <Filter className="w-5 h-5 text-midnight-300" />
+              <Search className="w-4 h-4" />
             </button>
           </div>
-        </div>
 
-        {/* Filter Tabs */}
-        <div className="flex space-x-2">
-          {(["all", "unread", "online"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
-                filter === f
-                  ? "bg-gradient-to-r from-saffron-500/20 to-violet-500/20 text-violet-400 border border-violet-500/30"
-                  : "glass-sm text-midnight-300 hover:bg-white/5",
-              )}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-              {f === "unread" && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-saffron-500/20 text-saffron-400 text-[10px]">
-                  {conversations.filter((c) => c.unreadCount > 0).length}
-                </span>
-              )}
-            </button>
-          ))}
+          {/* Filter pills */}
+          <div className="flex gap-1.5">
+            {(["all", "unread", "online"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-[11px] font-semibold transition-all",
+                  filter === f
+                    ? "bg-ink-900 text-white shadow-sm"
+                    : "bg-ink-100 text-ink-500 hover:bg-ink-200",
+                )}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+                {f === "unread" &&
+                  conversations.filter((c) => c.unreadCount > 0).length > 0 && (
+                    <span
+                      className={cn(
+                        "ml-1 font-bold",
+                        filter === f ? "text-blush-300" : "text-blush-500",
+                      )}
+                    >
+                      {conversations.filter((c) => c.unreadCount > 0).length}
+                    </span>
+                  )}
+              </button>
+            ))}
+          </div>
         </div>
-      </motion.header>
+      </header>
 
-      {/* Refresh Indicator */}
+      {/* ── Refresh indicator ── */}
       <AnimatePresence>
         {isRefreshing && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="relative z-10 mb-4 overflow-hidden"
+            className="overflow-hidden bg-lavender-50 border-b border-lavender-100"
           >
-            <div className="flex items-center justify-center py-3">
+            <div className="flex items-center justify-center gap-2 py-2.5">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               >
-                <RefreshCw className="w-5 h-5 text-violet-400" />
+                <RefreshCw className="w-3.5 h-3.5 text-lavender-500" />
               </motion.div>
-              <span className="ml-2 text-sm text-midnight-400">
-                Updating conversations...
+              <span className="text-xs text-lavender-600 font-medium">
+                Refreshing…
               </span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Chat List */}
-      <motion.main className="relative z-10 space-y-2">
+      {/* ── Chat List ── */}
+      <main className="max-w-lg mx-auto">
         {isLoading ? (
-          // Loading Skeletons
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div>
+            {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex items-center space-x-3 p-4 rounded-2xl glass-sm border border-white/5"
+                className="flex items-center gap-3.5 px-4 py-3.5 border-b border-ink-50"
               >
-                <div className="w-14 h-14 rounded-2xl bg-white/5 animate-pulse" />
+                <div className="w-12 h-12 rounded-2xl shimmer-bg shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
-                  <div className="h-3 w-48 bg-white/5 rounded animate-pulse" />
+                  <div className="h-3.5 w-28 rounded shimmer-bg" />
+                  <div className="h-2.5 w-44 rounded shimmer-bg" />
                 </div>
               </div>
             ))}
@@ -566,46 +585,39 @@ export default function ChatListPage() {
         ) : conversations.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="space-y-2">
+          <div>
             <AnimatePresence>
               {filteredConversations.map((conv, index) => (
                 <motion.div
                   key={conv.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.04 }}
                 >
                   <ChatListItem
                     conversation={conv}
-                    onClick={() => {
-                      // Navigate to chat detail
-                      console.log("Navigate to chat:", conv.id);
-                    }}
+                    onClick={() => console.log("Navigate to chat:", conv.id)}
                   />
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
         )}
-      </motion.main>
+      </main>
 
-      {/* Floating Action Button */}
-      <motion.footer
+      {/* ── New Chat FAB ── */}
+      <motion.button
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-        className="fixed bottom-6 right-6 z-20 safe-bottom"
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.93 }}
+        transition={{ delay: 0.4 }}
+        className="fixed bottom-24 right-5 z-20 w-13 h-13 w-[52px] h-[52px] rounded-2xl bg-ink-900 flex items-center justify-center shadow-lg hover:bg-ink-700 transition-colors safe-bottom"
       >
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-saffron-500 to-rose-500 border-2 border-saffron-500/50 flex items-center justify-center shadow-lg hover:shadow-saffron-glow transition-shadow"
-        >
-          <Plus className="w-6 h-6 text-white" />
-        </motion.button>
-      </motion.footer>
+        <Plus className="w-5 h-5 text-white" />
+      </motion.button>
 
-      {/* Search Modal */}
+      {/* ── Search Modal ── */}
       <SearchModal
         isOpen={showSearch}
         onClose={() => setShowSearch(false)}

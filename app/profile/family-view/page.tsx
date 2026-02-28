@@ -141,7 +141,7 @@ export default function FamilyViewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero px-4 py-8 safe-top safe-bottom">
+    <div className="min-h-screen bg-ink-50 px-4 py-8 safe-top safe-bottom">
       {/* Background Decorations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none print:hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-saffron-500/5 rounded-full blur-3xl" />

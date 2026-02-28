@@ -38,7 +38,11 @@ playwright/.cache/
 
 # IDE and Editor Files
 .idea/
-.vscode/
+# Allow shared VS Code settings (settings.json, extensions.json)
+# but ignore personal configs
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.swp
 *.swo
 *~

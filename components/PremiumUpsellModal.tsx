@@ -11,10 +11,10 @@
  * - Bilingual support
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Crown,
@@ -31,10 +31,15 @@ import {
   FileText,
   Star,
   Info,
-} from 'lucide-react';
-import { trackUpsellModalShown, trackUpgradeCTAClick, trackUpsellModalDismissed, trackRemindMeTomorrow } from '@/lib/analytics';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+} from "lucide-react";
+import {
+  trackUpsellModalShown,
+  trackUpgradeCTAClick,
+  trackUpsellModalDismissed,
+  trackRemindMeTomorrow,
+} from "@/lib/analytics";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return twMerge(clsx(classes));
@@ -46,8 +51,8 @@ function cn(...classes: (string | undefined | null | false)[]) {
 interface PremiumUpsellModalProps {
   isOpen: boolean;
   onClose: () => void;
-  triggerSource: 'limit_reached' | 'feature_locked' | 'banner_click';
-  limitType?: 'profiles' | 'chats' | 'likes';
+  triggerSource: "limit_reached" | "feature_locked" | "banner_click";
+  limitType?: "profiles" | "chats" | "likes";
   onUpgrade?: () => void;
 }
 
@@ -56,104 +61,104 @@ interface PremiumUpsellModalProps {
 // ─────────────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
   en: {
-    title: 'Daily limit reached! 😊',
-    titleHi: 'दैनिक सीमा पहुंच गई! 😊',
+    title: "Daily limit reached! 😊",
+    titleHi: "दैनिक सीमा पहुंच गई! 😊",
     subtitle: "You've viewed all your free profiles for today",
-    subtitleHi: 'आपने आज की सभी निःशुल्क प्रोफ़ाइल देख ली हैं',
-    upgradeTitle: 'Upgrade to Premium for unlimited access',
-    upgradeTitleHi: 'असीमित एक्सेस के लिए प्रीमियम में अपग्रेड करें',
-    price: '₹499',
-    pricePeriod: '/month',
-    priceHi: '₹499',
-    pricePeriodHi: '/माह',
-    yearlyPrice: '₹2,999',
-    yearlyPriceHi: '₹2,999',
-    yearlySave: 'Save 40%',
-    yearlySaveHi: '40% बचाएं',
-    benefits: 'What you get:',
-    benefitsHi: 'आपको क्या मिलता है:',
-    unlimitedProfiles: 'Unlimited profiles',
-    unlimitedProfilesHi: 'असीमित प्रोफ़ाइल',
-    unlimitedChats: 'Unlimited chats',
-    unlimitedChatsHi: 'असीमित चैट',
-    advancedFilters: 'Advanced filters (Caste, Gotra)',
-    advancedFiltersHi: 'उन्नत फ़िल्टर (जाति, गोत्र)',
-    priorityMatching: 'Priority matching',
-    priorityMatchingHi: 'प्राथमिकता मिलान',
-    familyViewPdf: 'Family View PDF',
-    familyViewPdfHi: 'परिवार दृश्य PDF',
-    compatibilityInsights: 'Compatibility insights',
-    compatibilityInsightsHi: 'अनुकूलता अंतर्दृष्टि',
-    verifiedProfiles: 'Verified profiles only',
-    verifiedProfilesHi: 'केवल सत्यापित प्रोफ़ाइल',
-    socialProof: 'Join 15,000+ premium users',
-    socialProofHi: '15,000+ प्रीमियम उपयोगकर्ताओं में शामिल हों',
-    unlockPremium: 'Unlock Premium',
-    unlockPremiumHi: 'प्रीमियम अनलॉक करें',
-    remindTomorrow: 'Remind me tomorrow',
-    remindTomorrowHi: 'कल याद दिलाएं',
-    skipForNow: 'Skip for now',
-    skipForNowHi: 'अभी के लिए छोड़ें',
-    or: 'or',
-    orHi: 'या',
-    comeBackTomorrow: 'Come back tomorrow at 12:00 AM IST',
-    comeBackTomorrowHi: 'कल सुबह 12:00 बजे IST पर वापस आएं',
-    trustedBy: 'Trusted by 50,000+ Indians',
-    trustedByHi: '50,000+ भारतीयों का भरोसा',
-    moneyBack: '7-day money back guarantee',
-    moneyBackHi: '7-दिन की वापसी गारंटी',
-    securePayment: 'Secure UPI payment',
-    securePaymentHi: 'सुरक्षित UPI भुगतान',
+    subtitleHi: "आपने आज की सभी निःशुल्क प्रोफ़ाइल देख ली हैं",
+    upgradeTitle: "Upgrade to Premium for unlimited access",
+    upgradeTitleHi: "असीमित एक्सेस के लिए प्रीमियम में अपग्रेड करें",
+    price: "₹499",
+    pricePeriod: "/month",
+    priceHi: "₹499",
+    pricePeriodHi: "/माह",
+    yearlyPrice: "₹2,999",
+    yearlyPriceHi: "₹2,999",
+    yearlySave: "Save 40%",
+    yearlySaveHi: "40% बचाएं",
+    benefits: "What you get:",
+    benefitsHi: "आपको क्या मिलता है:",
+    unlimitedProfiles: "Unlimited profiles",
+    unlimitedProfilesHi: "असीमित प्रोफ़ाइल",
+    unlimitedChats: "Unlimited chats",
+    unlimitedChatsHi: "असीमित चैट",
+    advancedFilters: "Advanced filters (Caste, Gotra)",
+    advancedFiltersHi: "उन्नत फ़िल्टर (जाति, गोत्र)",
+    priorityMatching: "Priority matching",
+    priorityMatchingHi: "प्राथमिकता मिलान",
+    familyViewPdf: "Family View PDF",
+    familyViewPdfHi: "परिवार दृश्य PDF",
+    compatibilityInsights: "Compatibility insights",
+    compatibilityInsightsHi: "अनुकूलता अंतर्दृष्टि",
+    verifiedProfiles: "Verified profiles only",
+    verifiedProfilesHi: "केवल सत्यापित प्रोफ़ाइल",
+    socialProof: "Join 15,000+ premium users",
+    socialProofHi: "15,000+ प्रीमियम उपयोगकर्ताओं में शामिल हों",
+    unlockPremium: "Unlock Premium",
+    unlockPremiumHi: "प्रीमियम अनलॉक करें",
+    remindTomorrow: "Remind me tomorrow",
+    remindTomorrowHi: "कल याद दिलाएं",
+    skipForNow: "Skip for now",
+    skipForNowHi: "अभी के लिए छोड़ें",
+    or: "or",
+    orHi: "या",
+    comeBackTomorrow: "Come back tomorrow at 12:00 AM IST",
+    comeBackTomorrowHi: "कल सुबह 12:00 बजे IST पर वापस आएं",
+    trustedBy: "Trusted by 50,000+ Indians",
+    trustedByHi: "50,000+ भारतीयों का भरोसा",
+    moneyBack: "7-day money back guarantee",
+    moneyBackHi: "7-दिन की वापसी गारंटी",
+    securePayment: "Secure UPI payment",
+    securePaymentHi: "सुरक्षित UPI भुगतान",
   },
   hi: {
-    title: 'दैनिक सीमा पहुंच गई! 😊',
-    titleHi: 'दैनिक सीमा पहुंच गई! 😊',
-    subtitle: 'आपने आज की सभी निःशुल्क प्रोफ़ाइल देख ली हैं',
-    subtitleHi: 'आपने आज की सभी निःशुल्क प्रोफ़ाइल देख ली हैं',
-    upgradeTitle: 'असीमित एक्सेस के लिए प्रीमियम में अपग्रेड करें',
-    upgradeTitleHi: 'असीमित एक्सेस के लिए प्रीमियम में अपग्रेड करें',
-    price: '₹499',
-    pricePeriod: '/माह',
-    priceHi: '₹499',
-    pricePeriodHi: '/माह',
-    yearlyPrice: '₹2,999',
-    yearlyPriceHi: '₹2,999',
-    yearlySave: '40% बचाएं',
-    yearlySaveHi: '40% बचाएं',
-    benefits: 'आपको क्या मिलता है:',
-    benefitsHi: 'आपको क्या मिलता है:',
-    unlimitedProfiles: 'असीमित प्रोफ़ाइल',
-    unlimitedProfilesHi: 'असीमित प्रोफ़ाइल',
-    unlimitedChats: 'असीमित चैट',
-    unlimitedChatsHi: 'असीमित चैट',
-    advancedFilters: 'उन्नत फ़िल्टर (जाति, गोत्र)',
-    advancedFiltersHi: 'उन्नत फ़िल्टर (जाति, गोत्र)',
-    priorityMatching: 'प्राथमिकता मिलान',
-    priorityMatchingHi: 'प्राथमिकता मिलान',
-    familyViewPdf: 'परिवार दृश्य PDF',
-    familyViewPdfHi: 'परिवार दृश्य PDF',
-    compatibilityInsights: 'अनुकूलता अंतर्दृष्टि',
-    compatibilityInsightsHi: 'अनुकूलता अंतर्दृष्टि',
-    verifiedProfiles: 'केवल सत्यापित प्रोफ़ाइल',
-    verifiedProfilesHi: 'केवल सत्यापित प्रोफ़ाइल',
-    socialProof: '15,000+ प्रीमियम उपयोगकर्ताओं में शामिल हों',
-    socialProofHi: '15,000+ प्रीमियम उपयोगकर्ताओं में शामिल हों',
-    unlockPremium: 'प्रीमियम अनलॉक करें',
-    unlockPremiumHi: 'प्रीमियम अनलॉक करें',
-    remindTomorrow: 'कल याद दिलाएं',
-    remindTomorrowHi: 'कल याद दिलाएं',
-    skipForNow: 'अभी के लिए छोड़ें',
-    skipForNowHi: 'अभी के लिए छोड़ें',
-    or: 'या',
-    orHi: 'या',
-    comeBackTomorrow: 'कल सुबह 12:00 बजे IST पर वापस आएं',
-    comeBackTomorrowHi: 'कल सुबह 12:00 बजे IST पर वापस आएं',
-    trustedBy: '50,000+ भारतीयों का भरोसा',
-    trustedByHi: '50,000+ भारतीयों का भरोसा',
-    moneyBack: '7-दिन की वापसी गारंटी',
-    moneyBackHi: '7-दिन की वापसी गारंटी',
-    securePayment: 'सुरक्षित UPI भुगतान',
-    securePaymentHi: 'सुरक्षित UPI भुगतान',
+    title: "दैनिक सीमा पहुंच गई! 😊",
+    titleHi: "दैनिक सीमा पहुंच गई! 😊",
+    subtitle: "आपने आज की सभी निःशुल्क प्रोफ़ाइल देख ली हैं",
+    subtitleHi: "आपने आज की सभी निःशुल्क प्रोफ़ाइल देख ली हैं",
+    upgradeTitle: "असीमित एक्सेस के लिए प्रीमियम में अपग्रेड करें",
+    upgradeTitleHi: "असीमित एक्सेस के लिए प्रीमियम में अपग्रेड करें",
+    price: "₹499",
+    pricePeriod: "/माह",
+    priceHi: "₹499",
+    pricePeriodHi: "/माह",
+    yearlyPrice: "₹2,999",
+    yearlyPriceHi: "₹2,999",
+    yearlySave: "40% बचाएं",
+    yearlySaveHi: "40% बचाएं",
+    benefits: "आपको क्या मिलता है:",
+    benefitsHi: "आपको क्या मिलता है:",
+    unlimitedProfiles: "असीमित प्रोफ़ाइल",
+    unlimitedProfilesHi: "असीमित प्रोफ़ाइल",
+    unlimitedChats: "असीमित चैट",
+    unlimitedChatsHi: "असीमित चैट",
+    advancedFilters: "उन्नत फ़िल्टर (जाति, गोत्र)",
+    advancedFiltersHi: "उन्नत फ़िल्टर (जाति, गोत्र)",
+    priorityMatching: "प्राथमिकता मिलान",
+    priorityMatchingHi: "प्राथमिकता मिलान",
+    familyViewPdf: "परिवार दृश्य PDF",
+    familyViewPdfHi: "परिवार दृश्य PDF",
+    compatibilityInsights: "अनुकूलता अंतर्दृष्टि",
+    compatibilityInsightsHi: "अनुकूलता अंतर्दृष्टि",
+    verifiedProfiles: "केवल सत्यापित प्रोफ़ाइल",
+    verifiedProfilesHi: "केवल सत्यापित प्रोफ़ाइल",
+    socialProof: "15,000+ प्रीमियम उपयोगकर्ताओं में शामिल हों",
+    socialProofHi: "15,000+ प्रीमियम उपयोगकर्ताओं में शामिल हों",
+    unlockPremium: "प्रीमियम अनलॉक करें",
+    unlockPremiumHi: "प्रीमियम अनलॉक करें",
+    remindTomorrow: "कल याद दिलाएं",
+    remindTomorrowHi: "कल याद दिलाएं",
+    skipForNow: "अभी के लिए छोड़ें",
+    skipForNowHi: "अभी के लिए छोड़ें",
+    or: "या",
+    orHi: "या",
+    comeBackTomorrow: "कल सुबह 12:00 बजे IST पर वापस आएं",
+    comeBackTomorrowHi: "कल सुबह 12:00 बजे IST पर वापस आएं",
+    trustedBy: "50,000+ भारतीयों का भरोसा",
+    trustedByHi: "50,000+ भारतीयों का भरोसा",
+    moneyBack: "7-दिन की वापसी गारंटी",
+    moneyBackHi: "7-दिन की वापसी गारंटी",
+    securePayment: "सुरक्षित UPI भुगतान",
+    securePaymentHi: "सुरक्षित UPI भुगतान",
   },
 };
 
@@ -174,14 +179,14 @@ function BenefitItem({
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay }}
-      className="flex items-center space-x-3"
+      className="flex items-center gap-3"
     >
-      <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-        <Check className="w-3.5 h-3.5 text-emerald-400" />
+      <div className="w-5 h-5 rounded-full bg-sage-100 border border-sage-200 flex items-center justify-center shrink-0">
+        <Check className="w-3 h-3 text-sage-600" />
       </div>
-      <div className="flex items-center space-x-2">
-        <Icon className="w-4 h-4 text-violet-400" />
-        <span className="text-sm text-gray-200">{text}</span>
+      <div className="flex items-center gap-2">
+        <Icon className="w-3.5 h-3.5 text-lavender-500 shrink-0" />
+        <span className="text-sm text-ink-700">{text}</span>
       </div>
     </motion.div>
   );
@@ -194,10 +199,10 @@ export function PremiumUpsellModal({
   isOpen,
   onClose,
   triggerSource,
-  limitType = 'profiles',
+  limitType = "profiles",
   onUpgrade,
 }: PremiumUpsellModalProps) {
-  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [language, setLanguage] = useState<"en" | "hi">("en");
   const [isYearly, setIsYearly] = useState(false);
 
   const t = TRANSLATIONS[language];
@@ -211,26 +216,26 @@ export function PremiumUpsellModal({
         limit_type: limitType,
         time_on_page: 0,
         previous_upsell_shown: 0,
-        user_segment: 'free',
+        user_segment: "free",
       });
     }
   }, [isOpen, triggerSource, limitType]);
 
   const handleUpgradeClick = () => {
-    trackUpgradeCTAClick(triggerSource, 'primary');
+    trackUpgradeCTAClick(triggerSource, "primary");
     onUpgrade?.();
     // Navigate to premium page
-    window.location.href = '/premium';
+    window.location.href = "/premium";
   };
 
   const handleRemindTomorrow = () => {
-    trackUpsellModalDismissed(triggerSource, 'remind_later');
+    trackUpsellModalDismissed(triggerSource, "remind_later");
     trackRemindMeTomorrow();
     onClose();
   };
 
   const handleSkip = () => {
-    trackUpsellModalDismissed(triggerSource, 'skip');
+    trackUpsellModalDismissed(triggerSource, "skip");
     onClose();
   };
 
@@ -254,64 +259,69 @@ export function PremiumUpsellModal({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
           >
             <div className="w-full max-w-lg my-8">
               {/* Card */}
-              <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-midnight-900 via-midnight-900 to-midnight-950 border border-white/10 shadow-2xl">
+              <div className="relative rounded-2xl overflow-hidden bg-white border border-ink-200 shadow-xl">
                 {/* Close Button */}
                 <button
                   onClick={onClose}
-                  className="absolute top-4 right-4 p-2 rounded-full glass-sm hover:bg-white/10 transition-colors z-10"
+                  className="absolute top-4 right-4 p-2 rounded-full border border-ink-200 text-ink-400 hover:text-ink-700 hover:bg-ink-50 transition-colors z-10"
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-4 h-4" />
                 </button>
 
                 {/* Language Toggle */}
                 <button
-                  onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                  className="absolute top-4 left-4 px-3 py-1.5 rounded-full glass-sm text-xs text-gray-400 hover:text-white transition-colors"
+                  onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+                  className="absolute top-4 left-4 px-3 py-1.5 rounded-full border border-ink-200 text-xs text-ink-500 hover:text-ink-700 hover:bg-ink-50 transition-colors"
                 >
-                  {language === 'en' ? 'हिंदी' : 'English'}
+                  {language === "en" ? "हिंदी" : "English"}
                 </button>
 
                 {/* Content */}
-                <div className="p-6 pt-16">
+                <div className="p-6 pt-14">
                   {/* Header */}
                   <div className="text-center mb-6">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: 'spring', delay: 0.2 }}
-                      className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-gold-500/20 to-saffron-500/20 border border-gold-500/30 mb-4"
+                      transition={{ type: "spring", delay: 0.2 }}
+                      className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold-100 border border-gold-200 mb-4"
                     >
-                      <Crown className="w-8 h-8 text-gold-400" />
+                      <Crown
+                        className="w-7 h-7 text-gold-600"
+                        strokeWidth={1.5}
+                      />
                     </motion.div>
-                    <h2 className="text-xl font-bold text-white mb-1">
+                    <h2 className="text-xl font-bold text-ink-900 tracking-tight mb-1">
                       {t.title}
                     </h2>
-                    <p className="text-sm text-gray-400">{t.subtitle}</p>
+                    <p className="text-sm text-ink-500">{t.subtitle}</p>
                   </div>
 
                   {/* Pricing */}
-                  <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-gold-500/10 to-saffron-500/10 border border-gold-500/20">
+                  <div className="mb-6 p-4 rounded-2xl bg-gold-50 border border-gold-200">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">
-                          {language === 'en' ? 'Premium Plan' : 'प्रीमियम प्लान'}
+                        <p className="text-xs text-ink-400 mb-1">
+                          {language === "en"
+                            ? "Premium Plan"
+                            : "प्रीमियम प्लान"}
                         </p>
-                        <div className="flex items-baseline space-x-1">
-                          <span className="text-3xl font-bold text-white">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-bold text-ink-900">
                             {isYearly ? t.yearlyPrice : t.price}
                           </span>
-                          <span className="text-sm text-gray-400">
+                          <span className="text-sm text-ink-400">
                             {isYearly ? t.pricePeriodHi : t.pricePeriod}
                           </span>
                         </div>
                       </div>
                       {isYearly && (
-                        <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                        <span className="px-2.5 py-1 rounded-full bg-sage-100 text-sage-700 border border-sage-200 text-xs font-bold">
                           {t.yearlySave}
                         </span>
                       )}
@@ -322,31 +332,31 @@ export function PremiumUpsellModal({
                       <button
                         onClick={() => setIsYearly(false)}
                         className={cn(
-                          'flex-1 py-2 rounded-lg text-xs font-medium transition-all',
+                          "flex-1 py-2 rounded-lg text-xs font-medium transition-all",
                           !isYearly
-                            ? 'bg-white/10 text-white'
-                            : 'text-gray-400 hover:text-white'
+                            ? "bg-white/10 text-white"
+                            : "text-gray-400 hover:text-white",
                         )}
                       >
-                        {language === 'en' ? 'Monthly' : 'मासिक'}
+                        {language === "en" ? "Monthly" : "मासिक"}
                       </button>
                       <button
                         onClick={() => setIsYearly(true)}
                         className={cn(
-                          'flex-1 py-2 rounded-lg text-xs font-medium transition-all',
+                          "flex-1 py-2 rounded-lg text-xs font-medium transition-all",
                           isYearly
-                            ? 'bg-white/10 text-white'
-                            : 'text-gray-400 hover:text-white'
+                            ? "bg-white text-ink-900 shadow-sm"
+                            : "text-ink-500 hover:text-ink-700",
                         )}
                       >
-                        {language === 'en' ? 'Yearly' : 'वार्षिक'}
+                        {language === "en" ? "Yearly" : "वार्षिक"}
                       </button>
                     </div>
                   </div>
 
                   {/* Benefits */}
-                  <div className="mb-6 space-y-2.5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <div className="mb-5 space-y-2">
+                    <p className="text-xs font-semibold text-ink-400 uppercase tracking-wide">
                       {t.benefits}
                     </p>
                     <BenefitItem
@@ -382,78 +392,76 @@ export function PremiumUpsellModal({
                   </div>
 
                   {/* Social Proof */}
-                  <div className="mb-6 p-3 rounded-xl bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-center space-x-4 text-xs text-gray-400">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-3.5 h-3.5" />
+                  <div className="mb-5 p-3 rounded-xl bg-ink-50 border border-ink-200">
+                    <div className="flex items-center justify-center gap-4 text-xs text-ink-500">
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-ink-400" />
                         <span>{t.socialProof}</span>
                       </div>
-                      <div className="w-px h-3 bg-white/10" />
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-3.5 h-3.5 text-gold-400 fill-gold-400" />
-                        <span>4.8/5 rating</span>
+                      <div className="w-px h-3 bg-ink-200" />
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 text-gold-500 fill-gold-500" />
+                        <span className="font-medium text-ink-700">4.8/5</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Trust Badges */}
-                  <div className="mb-6 flex items-center justify-center space-x-4 text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="mb-5 flex items-center justify-center gap-4 text-xs text-ink-400">
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-sage-500" />
                       <span>{t.moneyBack}</span>
                     </div>
-                    <div className="w-px h-3 bg-white/10" />
-                    <div className="flex items-center space-x-1">
-                      <Zap className="w-3.5 h-3.5 text-violet-400" />
+                    <div className="w-px h-3 bg-ink-200" />
+                    <div className="flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-lavender-500" />
                       <span>{t.securePayment}</span>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <motion.button
                       onClick={handleUpgradeClick}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-saffron-500 to-rose-500 text-white font-semibold hover:shadow-saffron-glow transition-shadow flex items-center justify-center space-x-2"
+                      className="w-full py-3 rounded-xl bg-ink-900 text-white font-semibold text-sm hover:bg-ink-700 transition-colors flex items-center justify-center gap-2"
                     >
-                      <Crown className="w-5 h-5" />
-                      <span>{t.unlockPremium}</span>
+                      <Crown className="w-4 h-4" strokeWidth={2} />
+                      {t.unlockPremium}
                     </motion.button>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={handleRemindTomorrow}
-                        className="flex-1 py-3 rounded-xl glass-sm border border-white/10 text-gray-300 text-sm hover:bg-white/5 transition-colors flex items-center justify-center space-x-2"
+                        className="flex-1 py-2.5 rounded-xl border border-ink-200 text-ink-600 text-sm hover:bg-ink-50 transition-colors flex items-center justify-center gap-1.5"
                       >
-                        <Clock className="w-4 h-4" />
-                        <span>{t.remindTomorrow}</span>
+                        <Clock className="w-3.5 h-3.5" />
+                        {t.remindTomorrow}
                       </button>
                       <button
                         onClick={handleSkip}
-                        className="px-4 py-3 rounded-xl text-gray-500 text-sm hover:text-gray-400 transition-colors"
+                        className="px-4 py-2.5 rounded-xl text-ink-400 text-sm hover:text-ink-600 transition-colors"
                       >
                         {t.skipForNow}
                       </button>
                     </div>
                   </div>
 
-                  {/* Reset Time Notice */}
-                  <p className="mt-4 text-xs text-center text-gray-500">
+                  <p className="mt-4 text-xs text-center text-ink-400">
                     {t.comeBackTomorrow}
                   </p>
                 </div>
 
-                {/* Bottom Gradient Bar */}
-                <div className="h-1 bg-gradient-to-r from-saffron-500 via-rose-500 to-violet-500" />
+                {/* Bottom accent bar */}
+                <div className="h-1 bg-gradient-to-r from-lavender-300 via-blush-300 to-peach-300" />
               </div>
 
-              {/* Trust Footer */}
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="mt-4 text-center text-xs text-gray-500"
+                className="mt-4 text-center text-xs text-ink-400"
               >
                 {t.trustedBy}
               </motion.p>

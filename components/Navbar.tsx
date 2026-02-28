@@ -1,176 +1,174 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Menu,
-  X,
-  Bell,
-  User,
-  Heart,
-  MessageCircle,
-  Crown,
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, X, Bell, User, Heart, MessageCircle, Crown } from "lucide-react";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return twMerge(clsx(classes));
 }
 
 const navLinks = [
-  {
-    href: '/matches',
-    label: 'Matches',
-    icon: Heart,
-  },
-  {
-    href: '/chat',
-    label: 'Chat',
-    icon: MessageCircle,
-  },
-  {
-    href: '/profile',
-    label: 'Profile',
-    icon: User,
-  },
+  { href: "/matches", label: "Matches", icon: Heart },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3);
+  const [unreadCount] = useState(3);
   const pathname = usePathname();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 
   return (
     <>
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+      {/* ─── Top Navigation Bar ─── */}
+      <header
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          isScrolled
-            ? 'glass-md py-2 safe-top'
-            : 'bg-transparent py-4 safe-top'
+          "fixed top-0 left-0 right-0 z-50 safe-top",
+          "bg-[#212121]",
+          "border-b-[3px] border-white",
+          "shadow-[0_4px_0px_#000000]",
         )}
       >
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
+        <nav className="max-w-5xl mx-auto px-4 sm:px-6">
+          {/* Height: 56px = 7 × 8px grid */}
+          <div className="flex items-center justify-between h-14">
+            {/* ── Logo ── */}
             <Link
               href="/"
-              className="flex items-center space-x-2 group"
+              className="flex items-center gap-2 no-underline group"
             >
-              <div className="relative">
-                <span className="text-gradient-brand text-2xl font-bold tracking-tight">
-                  Bandhan
+              <div className="w-8 h-8 bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000000] transition-[transform,box-shadow] duration-150 group-hover:translate-x-[1px] group-hover:translate-y-[1px] group-hover:shadow-[1px_1px_0px_#000000]">
+                <span className="text-black font-heading font-bold text-sm leading-none">
+                  B
                 </span>
-                <span className="text-violet-400 text-2xl font-bold ml-1">
-                  AI
-                </span>
-                <motion.div
-                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-saffron-500 to-violet-500 group-hover:w-full transition-all duration-300"
-                  initial={{ width: 0 }}
-                  whileHover={{ width: '100%' }}
-                />
               </div>
+              <span className="text-base font-heading font-bold tracking-tight text-white uppercase leading-none">
+                Bandhan <span className="text-[#E0E0E0]">AI</span>
+              </span>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                    'hover:text-saffron-400 hover:bg-white/5',
-                    isActive(link.href)
-                      ? 'text-violet-400 bg-white/10'
-                      : 'text-midnight-200'
-                  )}
-                >
-                  <span className="flex items-center space-x-2">
-                    <link.icon className="w-4 h-4" />
-                    <span>{link.label}</span>
-                  </span>
-                  {isActive(link.href) && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute inset-0 rounded-xl bg-white/10 -z-10"
-                      transition={{ type: 'spring', duration: 0.5 }}
+            {/* ── Desktop Nav ── */}
+            <div className="hidden md:flex items-center gap-0">
+              {navLinks.map((link) => {
+                const active = isActive(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "relative flex items-center gap-2 px-4 py-2 no-underline",
+                      "text-sm font-heading font-semibold uppercase tracking-wider",
+                      active
+                        ? "text-black bg-white"
+                        : "text-[#9E9E9E] hover:text-white hover:bg-[#000000]",
+                      "border-x border-[#424242]",
+                    )}
+                  >
+                    <link.icon
+                      className="w-4 h-4"
+                      strokeWidth={active ? 2.5 : 2}
                     />
-                  )}
-                </Link>
-              ))}
+                    {link.label}
+
+                    {/* Active indicator */}
+                    {active && (
+                      <>
+                        <div className="absolute -bottom-[3px] left-2 right-2 h-[3px] bg-black" />
+                        <div className="absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black" />
+                      </>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
-            {/* Right Actions */}
-            <div className="flex items-center space-x-3">
-              {/* Premium Badge */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-full glass-sm border border-gold-500/30 hover:border-gold-500/50 transition-colors"
-              >
-                <Crown className="w-4 h-4 text-gold-500" />
-                <span className="text-xs font-semibold text-gradient-premium">
-                  Premium
-                </span>
-              </motion.button>
-
-              {/* Notification Bell */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="relative p-2.5 rounded-xl glass-sm hover:bg-white/10 transition-colors group"
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5 text-midnight-300 group-hover:text-violet-400 transition-colors" />
-                {unreadCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gradient-to-r from-saffron-500 to-rose-500 text-[10px] font-bold text-white shadow-lg"
-                  >
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </motion.span>
+            {/* ── Right Side ── */}
+            <div className="flex items-center gap-2">
+              {/* Premium badge */}
+              <Link
+                href="/premium"
+                className={cn(
+                  "hidden sm:flex items-center gap-2 px-3 py-2 no-underline",
+                  "bg-white text-black",
+                  "border-2 border-black",
+                  "text-xs font-heading font-bold uppercase",
+                  "shadow-[2px_2px_0px_#000000]",
+                  "transition-[transform,box-shadow] duration-150",
+                  "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#000000]",
                 )}
-              </motion.button>
+              >
+                <Crown className="w-4 h-4" strokeWidth={2} />
+                Premium
+              </Link>
 
-              {/* Mobile Menu Button */}
-              <motion.button
-                whileTap={{ scale: 0.9 }}
+              {/* Notifications: 8-bit badge */}
+              <button
+                className={cn(
+                  "relative p-2 min-w-[40px] min-h-[40px]",
+                  "flex items-center justify-center",
+                  "text-[#9E9E9E] hover:text-white",
+                  "hover:bg-[#000000]",
+                  "border-none bg-transparent cursor-pointer",
+                )}
+                aria-label={`${unreadCount} notifications`}
+              >
+                <Bell className="w-5 h-5" strokeWidth={2} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-white text-black border-2 border-black text-[8px] font-pixel font-bold flex items-center justify-center leading-none">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Profile avatar: 32px = 4 × 8px */}
+              <button
+                className={cn(
+                  "relative w-8 h-8 overflow-hidden",
+                  "bg-[#E0E0E0] border-2 border-white",
+                  "items-center justify-center",
+                  "hover:bg-white",
+                  "hidden md:flex",
+                  "cursor-pointer",
+                )}
+                aria-label="Profile"
+              >
+                <User className="w-4 h-4 text-black" strokeWidth={2.5} />
+                {/* Online dot: 8px square */}
+                <span className="absolute -bottom-px -right-px w-2 h-2 bg-white border-[1.5px] border-black" />
+              </button>
+
+              {/* Mobile menu toggle: 40px touch target */}
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2.5 rounded-xl glass-sm hover:bg-white/10 transition-colors"
-                aria-label="Toggle menu"
+                className={cn(
+                  "md:hidden p-2 min-w-[40px] min-h-[40px]",
+                  "flex items-center justify-center",
+                  "text-white hover:bg-[#000000]",
+                  "border-none bg-transparent cursor-pointer",
+                )}
+                aria-label="Menu"
+                aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-5 h-5 text-midnight-300" />
+                  <X className="w-5 h-5" strokeWidth={2.5} />
                 ) : (
-                  <Menu className="w-5 h-5 text-midnight-300" />
+                  <Menu className="w-5 h-5" strokeWidth={2.5} />
                 )}
-              </motion.button>
+              </button>
             </div>
           </div>
         </nav>
-      </motion.header>
+      </header>
 
-      {/* Mobile Menu */}
+      {/* ─── Mobile Slide-in Menu ─── */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -180,93 +178,108 @@ export function Navbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden safe-top safe-bottom"
+              className="fixed inset-0 bg-black/80 z-40 md:hidden"
             />
 
-            {/* Menu Panel */}
+            {/* Slide-in panel */}
             <motion.div
-              initial={{ x: '100%', opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-[280px] glass-dark z-50 md:hidden safe-top safe-bottom"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              className={cn(
+                "fixed top-0 right-0 bottom-0 w-72 z-50 md:hidden",
+                "bg-white",
+                "border-l-4 border-black",
+                "shadow-[-8px_0_0px_#000000]",
+                "safe-top safe-bottom",
+              )}
             >
-              <div className="flex flex-col h-full p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                  <span className="text-gradient-brand text-xl font-bold">
+              <div className="flex flex-col h-full">
+                {/* Header: black bar */}
+                <div className="flex items-center justify-between px-6 py-4 bg-black text-white border-b-2 border-black">
+                  <span className="text-sm font-heading font-bold uppercase tracking-wider">
                     Menu
                   </span>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+                    className="w-8 h-8 bg-white text-black border-2 border-white flex items-center justify-center hover:bg-[#E0E0E0] cursor-pointer"
+                    aria-label="Close menu"
                   >
-                    <X className="w-5 h-5 text-midnight-300" />
+                    <X className="w-4 h-4" strokeWidth={3} />
                   </button>
                 </div>
 
-                {/* Navigation Links */}
-                <div className="flex flex-col space-y-2 flex-1">
-                  {navLinks.map((link, index) => (
-                    <motion.div
-                      key={link.href}
-                      initial={{ x: 50, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Link
-                        href={link.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={cn(
-                          'flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-200',
-                          isActive(link.href)
-                            ? 'bg-gradient-to-r from-violet-500/20 to-saffron-500/20 text-violet-400 border border-violet-500/30'
-                            : 'text-midnight-200 hover:bg-white/5 hover:text-saffron-400'
-                        )}
+                {/* Links: 24px padding, 8px gap */}
+                <div className="flex flex-col p-6 gap-2">
+                  {navLinks.map((link, i) => {
+                    const active = isActive(link.href);
+                    return (
+                      <motion.div
+                        key={link.href}
+                        initial={{ x: 16, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: i * 0.05, duration: 0.15 }}
                       >
-                        <link.icon
+                        <Link
+                          href={link.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
                           className={cn(
-                            'w-5 h-5',
-                            isActive(link.href)
-                              ? 'text-violet-400'
-                              : 'text-midnight-400'
+                            "flex items-center gap-3 px-4 py-3 no-underline",
+                            "text-sm font-heading font-bold uppercase tracking-wider",
+                            "border-2",
+                            active
+                              ? "bg-black text-white border-black shadow-[2px_2px_0px_#000000]"
+                              : "bg-white text-[#424242] border-[#E0E0E0] hover:border-black hover:bg-[#F8F8F8]",
                           )}
-                        />
-                        <span className="font-medium">{link.label}</span>
-                        {isActive(link.href) && (
-                          <motion.div
-                            layoutId="mobile-indicator"
-                            className="ml-auto w-1.5 h-1.5 rounded-full bg-gradient-to-r from-saffron-500 to-violet-500"
+                        >
+                          <link.icon
+                            className="w-5 h-5"
+                            strokeWidth={active ? 2.5 : 2}
                           />
-                        )}
-                      </Link>
-                    </motion.div>
-                  ))}
+                          {link.label}
+                          {active && (
+                            <span className="ml-auto text-[8px] font-pixel leading-none">
+                              ◄
+                            </span>
+                          )}
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
                 </div>
 
-                {/* Premium Card */}
+                {/* Premium card */}
                 <motion.div
-                  initial={{ y: 20, opacity: 0 }}
+                  initial={{ y: 16, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="mt-auto"
+                  transition={{ delay: 0.2 }}
+                  className="mt-auto p-6"
                 >
-                  <div className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-saffron-500/20 via-violet-500/20 to-rose-500/20 border border-white/10">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-gold-500/30 to-transparent rounded-full blur-xl" />
-                    <div className="relative">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Crown className="w-5 h-5 text-gold-500" />
-                        <span className="text-sm font-bold text-gradient-premium">
-                          Premium
-                        </span>
-                      </div>
-                      <p className="text-xs text-midnight-300 mb-3">
-                        Unlock unlimited matches and exclusive features
-                      </p>
-                      <button className="w-full py-2 rounded-lg bg-gradient-to-r from-saffron-500 to-violet-500 text-white text-xs font-semibold hover:shadow-saffron-glow transition-shadow">
-                        Upgrade Now
-                      </button>
+                  <div className="p-6 bg-[#F8F8F8] border-[3px] border-black shadow-[4px_4px_0px_#000000]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Crown className="w-5 h-5 text-black" strokeWidth={2} />
+                      <span className="text-sm font-heading font-bold text-black uppercase">
+                        Go Premium
+                      </span>
                     </div>
+                    <p className="text-xs text-[#424242] mb-4 leading-relaxed m-0">
+                      Unlimited matches, priority visibility & exclusive
+                      features.
+                    </p>
+                    <Link
+                      href="/premium"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "block w-full py-3 text-center no-underline",
+                        "bg-black text-white",
+                        "border-2 border-black",
+                        "text-xs font-heading font-bold uppercase tracking-wider",
+                        "hover:bg-[#424242]",
+                      )}
+                    >
+                      Upgrade Now
+                    </Link>
                   </div>
                 </motion.div>
               </div>

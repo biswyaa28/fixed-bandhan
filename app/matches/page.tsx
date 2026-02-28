@@ -1,12 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  useAnimation,
+  AnimatePresence,
+} from "framer-motion";
 import {
   Heart,
   X,
   Mic,
-  Filter,
   MapPin,
   Shield,
   ShieldCheck,
@@ -17,23 +22,24 @@ import {
   Crown,
   ChevronDown,
   Lock,
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+  SlidersHorizontal,
+  RotateCcw,
+} from "lucide-react";
+import Link from "next/link";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-function cn(...classes: (string | undefined | null | false)[]) {
-  return twMerge(clsx(classes));
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types & Mock Data
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Profile {
   id: string;
   name: string;
   age: number;
   city: string;
-  verificationLevel: 'bronze' | 'silver' | 'gold';
+  verificationLevel: "bronze" | "silver" | "gold";
   intent: string;
   compatibility: number;
   education: string;
@@ -41,559 +47,777 @@ interface Profile {
   motherTongue: string;
   imageUrl: string;
   isBlurred: boolean;
+  bio?: string;
+  hobbies?: string[];
+  initials?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
 }
 
+// ─── Mock data ────────────────────────────────────────────────────────────────
 const mockProfiles: Profile[] = [
   {
-    id: '1',
-    name: 'Priya Sharma',
+    id: "1",
+    name: "Priya Sharma",
     age: 26,
-    city: 'Bangalore',
-    verificationLevel: 'gold',
-    intent: 'Marriage within 1-2 years',
+    city: "Bangalore",
+    verificationLevel: "gold",
+    intent: "Marriage",
     compatibility: 94,
-    education: 'IIT Delhi',
-    religion: 'Hindu',
-    motherTongue: 'Hindi',
-    imageUrl: '/profiles/priya.jpg',
+    education: "IIT Delhi",
+    religion: "Hindu",
+    motherTongue: "Hindi",
+    imageUrl: "",
     isBlurred: true,
+    bio: "Software Engineer passionate about travel, books and finding a life partner who shares my values.",
+    hobbies: ["🧘 Yoga", "📚 Reading", "✈️ Travel", "🎵 Music"],
+    initials: "PS",
+    gradientFrom: "#EDE9FE",
+    gradientTo: "#DDD6FE",
   },
   {
-    id: '2',
-    name: 'Ananya Iyer',
+    id: "2",
+    name: "Ananya Iyer",
     age: 25,
-    city: 'Chennai',
-    verificationLevel: 'silver',
-    intent: 'Serious relationship',
+    city: "Chennai",
+    verificationLevel: "silver",
+    intent: "Serious",
     compatibility: 87,
-    education: 'Anna University',
-    religion: 'Hindu',
-    motherTongue: 'Tamil',
-    imageUrl: '/profiles/ananya.jpg',
+    education: "Anna University",
+    religion: "Hindu",
+    motherTongue: "Tamil",
+    imageUrl: "",
     isBlurred: true,
+    bio: "Doctor who loves classical music and long walks. Looking for someone kind and family-oriented.",
+    hobbies: ["🎶 Carnatic", "🏃 Running", "🍳 Cooking"],
+    initials: "AI",
+    gradientFrom: "#FFE4EA",
+    gradientTo: "#FECDD8",
   },
   {
-    id: '3',
-    name: 'Sneha Patel',
+    id: "3",
+    name: "Sneha Patel",
     age: 27,
-    city: 'Ahmedabad',
-    verificationLevel: 'gold',
-    intent: 'Marriage within 1-2 years',
+    city: "Ahmedabad",
+    verificationLevel: "gold",
+    intent: "Marriage",
     compatibility: 82,
-    education: 'NIT Surathkal',
-    religion: 'Hindu',
-    motherTongue: 'Gujarati',
-    imageUrl: '/profiles/sneha.jpg',
+    education: "NIT Surathkal",
+    religion: "Hindu",
+    motherTongue: "Gujarati",
+    imageUrl: "",
     isBlurred: true,
+    bio: "Entrepreneur running a D2C brand. Family values matter most to me alongside individual growth.",
+    hobbies: ["📊 Business", "🌿 Gardening", "✈️ Travel"],
+    initials: "SP",
+    gradientFrom: "#FEF3C7",
+    gradientTo: "#FDE68A",
   },
   {
-    id: '4',
-    name: 'Kavya Nair',
+    id: "4",
+    name: "Kavya Nair",
     age: 24,
-    city: 'Kochi',
-    verificationLevel: 'bronze',
-    intent: 'Serious relationship',
+    city: "Kochi",
+    verificationLevel: "bronze",
+    intent: "Serious",
     compatibility: 78,
-    education: 'Cochin University',
-    religion: 'Christian',
-    motherTongue: 'Malayalam',
-    imageUrl: '/profiles/kavya.jpg',
+    education: "Cochin University",
+    religion: "Christian",
+    motherTongue: "Malayalam",
+    imageUrl: "",
     isBlurred: true,
+    bio: "Teacher and poet. Believe every relationship is built on friendship first.",
+    hobbies: ["✍️ Writing", "🎭 Theatre", "🏊 Swimming"],
+    initials: "KN",
+    gradientFrom: "#DCFCE7",
+    gradientTo: "#BBF7D0",
   },
   {
-    id: '5',
-    name: 'Riya Gupta',
+    id: "5",
+    name: "Riya Gupta",
     age: 26,
-    city: 'Delhi',
-    verificationLevel: 'silver',
-    intent: 'Marriage within 1-2 years',
+    city: "Delhi",
+    verificationLevel: "silver",
+    intent: "Marriage",
     compatibility: 75,
-    education: 'Delhi University',
-    religion: 'Hindu',
-    motherTongue: 'Hindi',
-    imageUrl: '/profiles/riya.jpg',
+    education: "Delhi University",
+    religion: "Hindu",
+    motherTongue: "Hindi",
+    imageUrl: "",
     isBlurred: true,
+    bio: "Fashion designer with a love for art history. Seek someone who appreciates culture and travel.",
+    hobbies: ["👗 Fashion", "🎨 Art", "📸 Photography"],
+    initials: "RG",
+    gradientFrom: "#E0F2FE",
+    gradientTo: "#BAE6FD",
   },
 ];
 
-const intentColors: Record<string, string> = {
-  'Marriage within 1-2 years': 'from-saffron-500 to-rose-500',
-  'Serious relationship': 'from-violet-500 to-rose-500',
-  'Friendship / Networking': 'from-violet-500 to-blue-500',
-  'Healing space': 'from-emerald-500 to-teal-500',
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const intentStyle: Record<string, { bg: string; text: string }> = {
+  Marriage: { bg: "bg-blush-100", text: "text-blush-700" },
+  Serious: { bg: "bg-lavender-100", text: "text-lavender-700" },
+  Friendship: { bg: "bg-sky-100", text: "text-sky-700" },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Components
-// ─────────────────────────────────────────────────────────────────────────────
-function VerificationBadge({ level }: { level: 'bronze' | 'silver' | 'gold' }) {
-  const config = {
+function VerifBadge({ level }: { level: "bronze" | "silver" | "gold" }) {
+  const cfg = {
     bronze: {
-      color: 'text-amber-700 bg-amber-500/10 border-amber-500/30',
-      icon: Shield,
-      label: 'Verified',
+      cls: "bg-peach-100 border-peach-200 text-peach-700",
+      Icon: Shield,
     },
-    silver: {
-      color: 'text-midnight-200 bg-white/10 border-white/20',
-      icon: Shield,
-      label: 'Verified',
-    },
+    silver: { cls: "bg-ink-100   border-ink-200   text-ink-600", Icon: Shield },
     gold: {
-      color: 'text-gold-500 bg-gold-500/10 border-gold-500/30',
-      icon: ShieldCheck,
-      label: 'Verified',
+      cls: "bg-gold-100  border-gold-200  text-gold-700",
+      Icon: ShieldCheck,
     },
-  };
-
-  const Icon = config[level].icon;
-
+  }[level];
   return (
-    <div className={cn('px-2 py-1 rounded-full border flex items-center space-x-1', config[level].color)}>
-      <Icon className="w-3 h-3" />
-      <span className="text-[10px] font-semibold">{config[level].label}</span>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold",
+        cfg.cls,
+      )}
+    >
+      <cfg.Icon className="w-2.5 h-2.5" strokeWidth={2.5} />
+      {level === "gold"
+        ? "Gold Verified"
+        : level === "silver"
+          ? "ID Verified"
+          : "Phone Verified"}
+    </span>
+  );
+}
+
+// ── Circular compatibility indicator ─────────────────────────────────────────
+function CompatRing({ pct }: { pct: number }) {
+  const r = 16,
+    circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  const color = pct >= 90 ? "#22C55E" : pct >= 80 ? "#8B5CF6" : "#FB923C";
+  return (
+    <div className="relative flex items-center justify-center w-[42px] h-[42px] bg-white rounded-full shadow-sm border border-ink-100">
+      <svg
+        className="absolute inset-0 w-full h-full -rotate-90"
+        viewBox="0 0 42 42"
+      >
+        <circle
+          cx="21"
+          cy="21"
+          r={r}
+          fill="none"
+          stroke="#F3F4F6"
+          strokeWidth="3"
+        />
+        <circle
+          cx="21"
+          cy="21"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="3"
+          strokeDasharray={`${dash} ${circ - dash}`}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="text-[10px] font-bold text-ink-900 z-10">{pct}%</span>
     </div>
   );
 }
 
-function CompatibilityBadge({ percentage }: { percentage: number }) {
-  const getColor = () => {
-    if (percentage >= 90) return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30';
-    if (percentage >= 80) return 'text-violet-400 bg-violet-500/20 border-violet-500/30';
-    if (percentage >= 70) return 'text-amber-400 bg-amber-500/20 border-amber-500/30';
-    return 'text-midnight-400 bg-white/10 border-white/20';
-  };
-
-  return (
-    <div className={cn('px-2.5 py-1 rounded-full border flex items-center space-x-1', getColor())}>
-      <Sparkles className="w-3 h-3" />
-      <span className="text-xs font-bold">{percentage}% match</span>
-    </div>
-  );
-}
-
-function ProfileCard({
+// ─── Swipeable Profile Card ───────────────────────────────────────────────────
+function SwipeCard({
   profile,
-  index,
+  zIndex,
+  isTop,
   onLike,
   onPass,
-  onVoiceNote,
 }: {
   profile: Profile;
-  index: number;
+  zIndex: number;
+  isTop: boolean;
   onLike: () => void;
   onPass: () => void;
-  onVoiceNote: () => void;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-18, 18]);
+  const likeOpacity = useTransform(x, [10, 80], [0, 1]);
+  const passOpacity = useTransform(x, [-80, -10], [1, 0]);
+  const controls = useAnimation();
+  const intent = intentStyle[profile.intent] ?? {
+    bg: "bg-ink-100",
+    text: "text-ink-600",
+  };
+
+  const handleDragEnd = (_: any, info: { offset: { x: number } }) => {
+    if (info.offset.x > 100) {
+      controls
+        .start({ x: 500, opacity: 0, transition: { duration: 0.3 } })
+        .then(onLike);
+    } else if (info.offset.x < -100) {
+      controls
+        .start({ x: -500, opacity: 0, transition: { duration: 0.3 } })
+        .then(onPass);
+    } else {
+      controls.start({
+        x: 0,
+        rotate: 0,
+        transition: { type: "spring", stiffness: 300, damping: 20 },
+      });
+    }
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -100, scale: 0.9 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
+      animate={controls}
+      style={{ x, rotate, zIndex, position: "absolute", inset: 0 }}
+      drag={isTop ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.7}
+      onDragEnd={handleDragEnd}
       className={cn(
-        'relative rounded-3xl overflow-hidden border border-white/10',
-        'bg-gradient-to-b from-white/10 to-white/5',
-        'backdrop-blur-md'
+        "bg-white rounded-3xl overflow-hidden border border-ink-100 select-none",
+        isTop ? "shadow-xl cursor-grab active:cursor-grabbing" : "shadow-md",
       )}
-      style={{
-        zIndex: 3 - index,
-        transform: `scale(${1 - index * 0.05}) translateY(${index * 8}px)`,
-        opacity: 1 - index * 0.15,
-      }}
     >
-      {/* Blurred Background Image */}
-      <div className="absolute inset-0">
-        <div
-          className="w-full h-full bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${profile.imageUrl})`,
-            filter: profile.isBlurred ? 'blur(20px)' : 'none',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-midnight-900 via-midnight-900/60 to-transparent" />
-      </div>
-
-      {/* Content */}
-      <div className="relative p-5 min-h-[420px] flex flex-col">
-        {/* Top Section */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <VerificationBadge level={profile.verificationLevel} />
-            <CompatibilityBadge percentage={profile.compatibility} />
-          </div>
-
-          {/* Premium Lock */}
-          {profile.isBlurred && (
-            <div className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-              <Lock className="w-4 h-4 text-midnight-300" />
-            </div>
-          )}
-        </div>
-
-        {/* Profile Info */}
-        <div className="flex-1 space-y-3">
-          {/* Name & Age */}
-          <div>
-            <h3 className="text-2xl font-bold text-white mb-1">
-              {profile.name}, {profile.age}
-            </h3>
-            <div className="flex items-center space-x-1.5 text-midnight-300">
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm">{profile.city}</span>
-            </div>
-          </div>
-
-          {/* Intent Tag */}
-          <div className={cn('inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gradient-to-r', intentColors[profile.intent] || 'from-violet-500 to-rose-500')}>
-            <Heart className="w-3.5 h-3.5 text-white" />
-            <span className="text-xs font-semibold text-white">{profile.intent}</span>
-          </div>
-
-          {/* Quick Filters */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-sm">
-              <GraduationCap className="w-4 h-4 text-violet-400" />
-              <span className="text-midnight-200">{profile.education}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm">
-              <Church className="w-4 h-4 text-violet-400" />
-              <span className="text-midnight-200">{profile.religion}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm">
-              <Languages className="w-4 h-4 text-violet-400" />
-              <span className="text-midnight-200">{profile.motherTongue}</span>
-            </div>
-          </div>
-
-          {/* Expand for more details */}
-          <motion.button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center space-x-1 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+      {/* ── Swipe overlays ── */}
+      {isTop && (
+        <>
+          <motion.div
+            style={{ opacity: likeOpacity }}
+            className="absolute inset-0 z-20 rounded-3xl bg-sage-100/70 flex items-start justify-start p-6 pointer-events-none"
           >
-            <span>{isExpanded ? 'Show less' : 'View full profile'}</span>
-            <ChevronDown className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-180')} />
-          </motion.button>
-
-          {/* Expanded Content */}
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-3 border-t border-white/10 space-y-2">
-                  <p className="text-xs text-midnight-400">
-                    Software Engineer at a leading tech company. Loves traveling, reading, and spending time with family.
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="px-2 py-1 rounded-lg bg-white/5 text-xs text-midnight-300">🧘 Yoga</span>
-                    <span className="px-2 py-1 rounded-lg bg-white/5 text-xs text-midnight-300">📚 Reading</span>
-                    <span className="px-2 py-1 rounded-lg bg-white/5 text-xs text-midnight-300">✈️ Travel</span>
-                    <span className="px-2 py-1 rounded-lg bg-white/5 text-xs text-midnight-300">🍳 Cooking</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-center space-x-4 pt-4 mt-auto">
-          <motion.button
-            onClick={onPass}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-14 h-14 rounded-full glass-sm border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors"
+            <span className="text-sage-600 font-black text-3xl border-[3px] border-sage-500 rounded-xl px-3 py-1 rotate-[-12deg]">
+              LIKE
+            </span>
+          </motion.div>
+          <motion.div
+            style={{ opacity: passOpacity }}
+            className="absolute inset-0 z-20 rounded-3xl bg-red-50/70 flex items-start justify-end p-6 pointer-events-none"
           >
-            <X className="w-6 h-6 text-midnight-300" />
-          </motion.button>
+            <span className="text-red-500 font-black text-3xl border-[3px] border-red-400 rounded-xl px-3 py-1 rotate-[12deg]">
+              PASS
+            </span>
+          </motion.div>
+        </>
+      )}
 
-          <motion.button
-            onClick={onVoiceNote}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-12 h-12 rounded-full glass-sm border border-violet-500/30 flex items-center justify-center hover:bg-violet-500/20 transition-colors"
-          >
-            <Mic className="w-5 h-5 text-violet-400" />
-          </motion.button>
-
-          <motion.button
-            onClick={onLike}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-saffron-500 to-rose-500 border border-saffron-500/50 flex items-center justify-center hover:shadow-saffron-glow transition-shadow"
-          >
-            <Heart className="w-6 h-6 text-white" />
-          </motion.button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-16 px-8 text-center"
-    >
-      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-saffron-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center mb-6">
-        <Heart className="w-10 h-10 text-midnight-400" />
-      </div>
-      <h3 className="text-xl font-bold text-midnight-50 mb-2">No matches yet</h3>
-      <p className="text-midnight-300 text-sm mb-6">
-        Complete your profile to get personalized matches
-      </p>
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className="px-6 py-3 rounded-xl bg-gradient-to-r from-saffron-500 to-violet-500 text-white font-semibold hover:shadow-saffron-glow transition-shadow"
+      {/* ── Photo / avatar area ── */}
+      <div
+        className="relative h-64 overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${profile.gradientFrom}, ${profile.gradientTo})`,
+        }}
       >
-        Complete Profile
-      </motion.button>
-    </motion.div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────────────────────────────────────────
-export default function MatchesPage() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [dailyLimit, setDailyLimit] = useState({ used: 3, total: 5 });
-  const [showFilters, setShowFilters] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading profiles
-    const timer = setTimeout(() => {
-      setProfiles(mockProfiles);
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleLike = (id: string) => {
-    console.log('Liked:', id);
-    setProfiles((prev) => prev.filter((p) => p.id !== id));
-    setDailyLimit((prev) => ({ ...prev, used: prev.used + 1 }));
-  };
-
-  const handlePass = (id: string) => {
-    console.log('Passed:', id);
-    setProfiles((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const handleVoiceNote = (id: string) => {
-    console.log('Voice note for:', id);
-    // Open voice recording modal
-  };
-
-  const remainingProfiles = dailyLimit.total - dailyLimit.used;
-
-  return (
-    <div className="min-h-screen bg-gradient-hero px-4 py-8 safe-top safe-bottom pb-24">
-      {/* Background Decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-saffron-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-violet-500/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gradient-brand">
-              Suggested Matches
-            </h1>
-            <p className="text-sm text-midnight-300">
-              Based on your preferences
-            </p>
-          </div>
-          <motion.button
-            onClick={() => setShowFilters(!showFilters)}
-            whileTap={{ scale: 0.95 }}
-            className={cn(
-              'p-3 rounded-xl border transition-all duration-200',
-              showFilters
-                ? 'bg-violet-500/20 border-violet-500/50'
-                : 'glass-sm border-white/10 hover:border-white/20'
-            )}
-          >
-            <Filter className={cn('w-5 h-5', showFilters ? 'text-violet-400' : 'text-midnight-300')} />
-          </motion.button>
-        </div>
-
-        {/* Daily Limit Counter */}
-        <div className="glass-sm rounded-xl p-3 border border-white/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Crown className="w-5 h-5 text-gold-500" />
-              <span className="text-sm text-midnight-200">
-                {dailyLimit.used}/{dailyLimit.total} profiles today
+        {profile.imageUrl ? (
+          <img
+            src={profile.imageUrl}
+            alt={profile.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+            <div className="w-20 h-20 rounded-2xl bg-white/60 backdrop-blur-sm flex items-center justify-center shadow-sm">
+              <span className="text-2xl font-bold text-ink-700">
+                {profile.initials}
               </span>
             </div>
-            <div className="flex space-x-1">
-              {Array.from({ length: dailyLimit.total }).map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'w-2 h-2 rounded-full transition-colors',
-                    i < dailyLimit.used
-                      ? 'bg-gradient-to-r from-saffron-500 to-violet-500'
-                      : 'bg-white/10'
-                  )}
-                />
-              ))}
+            {profile.isBlurred && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-sm">
+                <Lock className="w-3 h-3 text-ink-500" strokeWidth={2} />
+                <span className="text-[11px] text-ink-600 font-medium">
+                  Photo hidden · Upgrade to reveal
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Gradient scrim at bottom of photo */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+
+        {/* Name overlay */}
+        <div className="absolute bottom-0 inset-x-0 px-4 pb-3">
+          <div className="flex items-end justify-between">
+            <div>
+              <h3 className="text-white text-xl font-bold leading-tight drop-shadow-sm">
+                {profile.name}, {profile.age}
+              </h3>
+              <p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3 h-3" strokeWidth={2} />
+                {profile.city}
+              </p>
             </div>
+            <CompatRing pct={profile.compatibility} />
           </div>
-
-          {/* Progress Bar */}
-          <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${(dailyLimit.used / dailyLimit.total) * 100}%` }}
-              className="h-full bg-gradient-to-r from-saffron-500 to-violet-500 rounded-full"
-            />
-          </div>
-
-          {remainingProfiles === 0 ? (
-            <p className="text-xs text-amber-400 mt-2">
-              Daily limit reached. Upgrade to Premium for unlimited matches!
-            </p>
-          ) : (
-            <p className="text-xs text-midnight-400 mt-2">
-              {remainingProfiles} more {remainingProfiles === 1 ? 'profile' : 'profiles'} available today
-            </p>
-          )}
         </div>
 
-        {/* Filters Panel */}
-        <AnimatePresence>
-          {showFilters && (
+        {/* Top badges */}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
+          <VerifBadge level={profile.verificationLevel} />
+          <span
+            className={cn(
+              "text-[11px] font-semibold px-2.5 py-0.5 rounded-full",
+              intent.bg,
+              intent.text,
+            )}
+          >
+            {profile.intent}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Card body ── */}
+      <div className="p-4 pt-3">
+        {/* Quick info chips */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {[
+            { Icon: GraduationCap, val: profile.education },
+            { Icon: Church, val: profile.religion },
+            { Icon: Languages, val: profile.motherTongue },
+          ].map(({ Icon, val }) => (
+            <span
+              key={val}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink-50 border border-ink-100 text-xs text-ink-500"
+            >
+              <Icon className="w-3 h-3 text-ink-400" strokeWidth={1.5} />
+              {val}
+            </span>
+          ))}
+        </div>
+
+        {/* Bio */}
+        {profile.bio && (
+          <p className="text-[13px] text-ink-500 leading-relaxed mb-2 line-clamp-2">
+            {profile.bio}
+          </p>
+        )}
+
+        {/* Expand */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
+          className="flex items-center gap-1 text-xs text-lavender-600 font-medium hover:text-lavender-700 transition-colors mb-1"
+        >
+          {expanded ? "Less" : "More details"}
+          <ChevronDown
+            className={cn(
+              "w-3.5 h-3.5 transition-transform duration-200",
+              expanded && "rotate-180",
+            )}
+          />
+        </button>
+
+        <AnimatePresence initial={false}>
+          {expanded && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
+              animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden mt-4"
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
             >
-              <div className="glass-md rounded-xl p-4 border border-white/10 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-midnight-400 mb-1">Age Range</label>
-                    <select className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-midnight-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
-                      <option>22-28</option>
-                      <option>25-32</option>
-                      <option>28-35</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-midnight-400 mb-1">Location</label>
-                    <select className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-midnight-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
-                      <option>Any</option>
-                      <option>Same City</option>
-                      <option>Same State</option>
-                      <option>Pan India</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-midnight-400 mb-1">Education</label>
-                    <select className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-midnight-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
-                      <option>Any</option>
-                      <option>Graduate</option>
-                      <option>Post Graduate</option>
-                      <option>PhD</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-midnight-400 mb-1">Intent</label>
-                    <select className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-midnight-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
-                      <option>Any</option>
-                      <option>Marriage</option>
-                      <option>Serious</option>
-                      <option>Friendship</option>
-                    </select>
-                  </div>
-                </div>
+              <div className="flex flex-wrap gap-1.5 pt-2 pb-1 border-t border-ink-100">
+                {profile.hobbies?.map((h) => (
+                  <span
+                    key={h}
+                    className="px-2 py-0.5 rounded-md bg-lavender-50 border border-lavender-100 text-xs text-lavender-700"
+                  >
+                    {h}
+                  </span>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.header>
 
-      {/* Profile Cards Stack */}
-      <motion.main className="relative z-10">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        {/* ── Action row ── */}
+        <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-ink-100">
+          <motion.button
+            onClick={onPass}
+            whileTap={{ scale: 0.93 }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-ink-200 bg-white text-sm font-medium text-ink-500 hover:border-ink-300 hover:text-ink-700 hover:bg-ink-50 transition-colors"
+          >
+            <X className="w-4 h-4" strokeWidth={2} />
+            Pass
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.93 }}
+            className="p-2.5 rounded-2xl border border-lavender-200 bg-lavender-50 text-lavender-600 hover:bg-lavender-100 transition-colors"
+          >
+            <Mic className="w-4 h-4" strokeWidth={1.5} />
+          </motion.button>
+
+          <motion.button
+            onClick={onLike}
+            whileTap={{ scale: 0.93 }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-ink-900 text-sm font-semibold text-white hover:bg-ink-700 transition-colors"
+          >
+            <Heart className="w-4 h-4" strokeWidth={2} />
+            Like
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Match Celebration ────────────────────────────────────────────────────────
+function MatchToast({
+  name,
+  onDismiss,
+}: {
+  name: string;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <motion.div
+      initial={{ y: 80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 80, opacity: 0 }}
+      className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl bg-ink-900 text-white shadow-xl"
+    >
+      <Heart className="w-5 h-5 text-blush-300 fill-blush-300" />
+      <span className="text-sm font-semibold">
+        You liked <strong>{name}</strong>!
+      </span>
+    </motion.div>
+  );
+}
+
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+function CardSkeleton() {
+  return (
+    <div className="rounded-3xl bg-white border border-ink-100 overflow-hidden shadow-md">
+      <div className="h-64 shimmer-bg" />
+      <div className="p-4 space-y-2.5">
+        <div className="h-5 w-36 shimmer-bg rounded-lg" />
+        <div className="h-3.5 w-24 shimmer-bg rounded" />
+        <div className="flex gap-1.5 mt-3">
+          {[80, 60, 72].map((w) => (
+            <div
+              key={w}
+              className={`h-5 rounded-md shimmer-bg`}
+              style={{ width: w }}
+            />
+          ))}
+        </div>
+        <div className="h-3.5 w-full shimmer-bg rounded mt-2" />
+        <div className="h-3.5 w-4/5  shimmer-bg rounded" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-16 text-center px-6"
+    >
+      <div className="w-20 h-20 rounded-3xl bg-blush-100 border border-blush-200 flex items-center justify-center mb-5 shadow-sm">
+        <Heart className="w-9 h-9 text-blush-400" strokeWidth={1.5} />
+      </div>
+      <h3 className="text-lg font-bold text-ink-900 mb-1.5">
+        You've seen everyone!
+      </h3>
+      <p className="text-sm text-ink-400 mb-7 max-w-xs leading-relaxed">
+        You've reviewed all profiles for today. Upgrade for unlimited access or
+        check back tomorrow.
+      </p>
+      <div className="flex flex-col gap-2.5 w-full max-w-[220px]">
+        <button
+          onClick={onReset}
+          className="flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 transition-colors"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Reset (Demo)
+        </button>
+        <Link
+          href="/premium"
+          className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-ink-900 text-white text-sm font-semibold hover:bg-ink-700 transition-colors"
+        >
+          <Crown className="w-4 h-4 text-gold-300" strokeWidth={2} />
+          Upgrade
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Filter Sheet ─────────────────────────────────────────────────────────────
+function FilterSheet({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const filters = [
+    { label: "Age Range", options: ["Any", "22–27", "25–32", "28–36"] },
+    {
+      label: "Location",
+      options: ["Any", "Same City", "Same State", "Pan India"],
+    },
+    {
+      label: "Education",
+      options: ["Any", "Graduate", "Post-Graduate", "PhD"],
+    },
+    { label: "Intent", options: ["Any", "Marriage", "Serious", "Friendship"] },
+  ];
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-ink-900/20 z-40"
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl p-5 pb-10 safe-bottom max-h-[85vh] overflow-y-auto"
+          >
+            <div className="w-10 h-1 rounded-full bg-ink-200 mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-bold text-ink-900">
+                Filter Matches
+              </h3>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-ink-400 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {filters.map(({ label, options }) => (
+                <div key={label}>
+                  <label className="block text-[11px] font-semibold text-ink-500 uppercase tracking-wide mb-1.5">
+                    {label}
+                  </label>
+                  <select className="w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-sm text-ink-700 focus:outline-none focus:border-lavender-400">
+                    {options.map((o) => (
+                      <option key={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full mt-6 py-3 rounded-2xl bg-ink-900 text-white text-sm font-semibold hover:bg-ink-700 transition-colors"
             >
-              <Sparkles className="w-10 h-10 text-violet-400" />
-            </motion.div>
-            <p className="text-midnight-300 text-sm mt-4">Finding your matches...</p>
+              Apply Filters
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function MatchesPage() {
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [daily, setDaily] = useState({ used: 3, total: 5 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [lastLiked, setLastLiked] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setProfiles(mockProfiles);
+      setIsLoading(false);
+    }, 900);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleLike = (id: string) => {
+    const p = profiles.find((x) => x.id === id);
+    if (p) setLastLiked(p.name);
+    setProfiles((prev) => prev.filter((x) => x.id !== id));
+    setDaily((prev) => ({
+      ...prev,
+      used: Math.min(prev.used + 1, prev.total),
+    }));
+  };
+  const handlePass = (id: string) =>
+    setProfiles((prev) => prev.filter((x) => x.id !== id));
+  const remaining = daily.total - daily.used;
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA]">
+      {/* ── Sticky Header ── */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-ink-100 px-4 safe-top">
+        <div className="max-w-md mx-auto py-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <div>
+              <h1 className="text-[1.15rem] font-bold text-ink-900 tracking-tight">
+                Discover
+              </h1>
+              <p className="text-[11px] text-ink-400">
+                {profiles.length} profiles for you
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFilters(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium border border-ink-200 text-ink-600 hover:border-ink-400 hover:bg-ink-50 transition-colors"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Filter
+              </button>
+            </div>
+          </div>
+
+          {/* Daily limit bar */}
+          <div className="flex items-center gap-2.5">
+            <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(daily.used / daily.total) * 100}%` }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className={cn(
+                  "h-full rounded-full",
+                  remaining > 1 ? "bg-lavender-400" : "bg-blush-500",
+                )}
+              />
+            </div>
+            <span className="text-[11px] text-ink-400 shrink-0 tabular-nums">
+              {daily.used}/{daily.total} today
+            </span>
+            {remaining === 0 && (
+              <Link
+                href="/premium"
+                className="shrink-0 text-[11px] font-bold text-gold-600 flex items-center gap-0.5 hover:text-gold-700"
+              >
+                <Crown className="w-3 h-3" strokeWidth={2.5} /> Upgrade
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ── Card Area ── */}
+      <main className="max-w-md mx-auto px-4 pt-5 pb-36">
+        {isLoading ? (
+          <div className="space-y-4">
+            <CardSkeleton />
+            <div className="opacity-50">
+              <CardSkeleton />
+            </div>
           </div>
         ) : profiles.length === 0 ? (
-          <EmptyState />
+          <EmptyState
+            onReset={() => {
+              setProfiles(mockProfiles);
+              setDaily({ used: 0, total: 5 });
+            }}
+          />
         ) : (
-          <div className="relative h-[520px]">
+          <div className="relative" style={{ height: 580 }}>
             <AnimatePresence>
-              {profiles.slice(0, 3).map((profile, index) => (
-                <ProfileCard
-                  key={profile.id}
-                  profile={profile}
-                  index={index}
-                  onLike={() => handleLike(profile.id)}
-                  onPass={() => handlePass(profile.id)}
-                  onVoiceNote={() => handleVoiceNote(profile.id)}
+              {profiles.slice(0, 3).map((p, i) => (
+                <SwipeCard
+                  key={p.id}
+                  profile={p}
+                  zIndex={10 - i}
+                  isTop={i === 0}
+                  onLike={() => handleLike(p.id)}
+                  onPass={() => handlePass(p.id)}
                 />
               ))}
             </AnimatePresence>
+
+            {/* Stack shadow cards */}
+            {profiles.length > 1 && (
+              <div className="absolute inset-x-2 bottom-0 -z-10 h-4 bg-white rounded-3xl border border-ink-100 shadow-sm opacity-60" />
+            )}
+            {profiles.length > 2 && (
+              <div className="absolute inset-x-4 bottom-0 -z-20 h-4 bg-white rounded-3xl border border-ink-100 opacity-30" />
+            )}
           </div>
         )}
-      </motion.main>
 
-      {/* Premium Upgrade Banner */}
-      {remainingProfiles <= 1 && (
-        <motion.footer
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-midnight-900 via-midnight-900/95 to-transparent"
-        >
-          <div className="max-w-md mx-auto">
-            <div className="glass-md rounded-2xl p-4 border border-white/10 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-500/20 to-saffron-500/20 border border-gold-500/30 flex items-center justify-center">
-                  <Crown className="w-5 h-5 text-gold-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-midnight-50">Upgrade to Premium</p>
-                  <p className="text-xs text-midnight-400">Unlimited matches & more features</p>
-                </div>
+        {/* Swipe hint */}
+        {!isLoading && profiles.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="flex items-center justify-center gap-4 mt-4 text-[11px] text-ink-300"
+          >
+            <span className="flex items-center gap-1">
+              <X className="w-3 h-3" /> Swipe left to pass
+            </span>
+            <span className="w-px h-3 bg-ink-200" />
+            <span className="flex items-center gap-1">
+              <Heart className="w-3 h-3" /> Swipe right to like
+            </span>
+          </motion.div>
+        )}
+      </main>
+
+      {/* ── Upgrade Banner ── */}
+      <AnimatePresence>
+        {remaining <= 1 && !isLoading && profiles.length > 0 && (
+          <motion.div
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 60, opacity: 0 }}
+            className="fixed bottom-20 left-0 right-0 z-20 px-4 safe-bottom"
+          >
+            <div className="max-w-md mx-auto flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border border-gold-200 shadow-lg">
+              <div className="w-9 h-9 rounded-xl bg-gold-100 flex items-center justify-center shrink-0">
+                <Crown
+                  className="w-4.5 h-4.5 text-gold-600"
+                  strokeWidth={1.5}
+                />
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-gold-500 to-saffron-500 text-white text-sm font-semibold hover:shadow-lg transition-shadow"
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-ink-900">
+                  Daily limit reached
+                </p>
+                <p className="text-[11px] text-ink-400 truncate">
+                  Upgrade for unlimited profiles
+                </p>
+              </div>
+              <Link
+                href="/premium"
+                className="shrink-0 px-3.5 py-2 rounded-xl bg-ink-900 text-white text-xs font-bold hover:bg-ink-700 transition-colors"
               >
                 Upgrade
-              </motion.button>
+              </Link>
             </div>
-          </div>
-        </motion.footer>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Like toast ── */}
+      <AnimatePresence>
+        {lastLiked && (
+          <MatchToast name={lastLiked} onDismiss={() => setLastLiked(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* ── Filter Sheet ── */}
+      <FilterSheet open={showFilters} onClose={() => setShowFilters(false)} />
     </div>
   );
 }

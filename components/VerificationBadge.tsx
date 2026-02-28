@@ -1,37 +1,19 @@
 /**
- * Bandhan AI - Verification Badge System
- * Multi-tier trust badges that visually communicate verification levels
+ * Bandhan AI — Verification Badge System (Comic Book / 8-Bit)
  *
  * Tiers:
- * - Bronze: Phone verified (respectable, not "basic")
- * - Silver: DigiLocker verified (identity confirmed)
- * - Gold: Video + DigiLocker (maximum trust)
+ * - Bronze: #E0E0E0 square "B" — phone verified
+ * - Silver: #9E9E9E square "S" — DigiLocker verified
+ * - Gold:   #424242 square "G" — full premium verified
  *
- * Design Principles:
- * - All badges look prestigious (no "unverified" label)
- * - Subtle animations (not distracting)
- * - Clear visual hierarchy
- * - Bilingual tooltips
+ * All sizes snap to 8px grid. All borders 2px. Hard shadows only.
  */
 
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import {
-  Smartphone,
-  Award,
-  Medal,
-  Shield,
-  ShieldCheck,
-  ShieldAlert,
-  CheckCircle2,
-  Info,
-  Sparkles,
-  Crown,
-  Video,
-  BadgeCheck,
-} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, CheckCircle2, Star } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -39,9 +21,7 @@ function cn(...classes: (string | undefined | null | false)[]) {
   return twMerge(clsx(classes));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────
 export type VerificationTier = "bronze" | "silver" | "gold";
 
 export interface VerificationBadgeProps {
@@ -52,9 +32,7 @@ export interface VerificationBadgeProps {
   onClick?: () => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Translations
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Translations ────────────────────────────────────────────────────────
 const BADGE_TRANSLATIONS = {
   en: {
     bronze: {
@@ -99,69 +77,43 @@ const BADGE_TRANSLATIONS = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Badge Configurations
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Badge Config ────────────────────────────────────────────────────────
 const BADGE_CONFIG = {
   bronze: {
-    icon: Smartphone,
-    gradient: "from-amber-600 via-amber-500 to-amber-600",
-    bgGradient: "from-amber-500/20 to-amber-600/20",
-    borderColor: "border-amber-500/40",
-    shadowColor: "shadow-amber-500/20",
-    textColor: "text-amber-400",
-    iconColor: "text-amber-300",
-    pulseColor: "shadow-amber-500/30",
+    bg: "bg-[#E0E0E0]",
+    text: "text-black",
+    letter: "B",
+    label: "BRONZE",
     order: 1,
   },
   silver: {
-    icon: Award,
-    gradient: "from-gray-400 via-gray-300 to-gray-400",
-    bgGradient: "from-gray-400/20 to-gray-300/20",
-    borderColor: "border-gray-400/40",
-    shadowColor: "shadow-gray-400/20",
-    textColor: "text-gray-300",
-    iconColor: "text-gray-200",
-    pulseColor: "shadow-gray-400/30",
+    bg: "bg-[#9E9E9E]",
+    text: "text-black",
+    letter: "S",
+    label: "SILVER",
     order: 2,
   },
   gold: {
-    icon: Medal,
-    gradient: "from-yellow-500 via-yellow-400 to-yellow-500",
-    bgGradient: "from-yellow-500/20 to-yellow-400/20",
-    borderColor: "border-yellow-500/40",
-    shadowColor: "shadow-yellow-500/20",
-    textColor: "text-yellow-400",
-    iconColor: "text-yellow-300",
-    pulseColor: "shadow-yellow-500/40",
+    bg: "bg-[#424242]",
+    text: "text-white",
+    letter: "G",
+    label: "GOLD",
     order: 3,
   },
 } as const;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Size Configurations
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Sizes (8px grid: 16px, 24px, 32px) ─────────────────────────────────
 const SIZE_CONFIG = {
   sm: {
-    container: "w-5 h-5",
-    icon: "w-3 h-3",
-    tooltip: "text-xs",
+    container: "w-4 h-4",
+    fontSize: "text-[7px]",
+    border: "border-[1.5px]",
   },
-  md: {
-    container: "w-6 h-6",
-    icon: "w-4 h-4",
-    tooltip: "text-sm",
-  },
-  lg: {
-    container: "w-8 h-8",
-    icon: "w-5 h-5",
-    tooltip: "text-base",
-  },
+  md: { container: "w-6 h-6", fontSize: "text-[9px]", border: "border-2" },
+  lg: { container: "w-8 h-8", fontSize: "text-[11px]", border: "border-2" },
 } as const;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tooltip Component
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Tooltip ─────────────────────────────────────────────────────────────
 function BadgeTooltip({
   tier,
   language,
@@ -177,54 +129,63 @@ function BadgeTooltip({
 
   return (
     <div
-      className="relative inline-block"
+      className="relative inline-flex"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
     >
       {children}
 
-      <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-        animate={{
-          opacity: isVisible ? 1 : 0,
-          y: isVisible ? 0 : 10,
-          scale: isVisible ? 1 : 0.95,
-        }}
-        transition={{ duration: 0.15 }}
-        className={cn(
-          "absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50",
-          "pointer-events-none",
-          isVisible ? "visible" : "invisible",
-        )}
-      >
-        <div
-          className={cn(
-            "px-3 py-2 rounded-xl glass-md border border-white/20 shadow-xl whitespace-nowrap",
-            SIZE_CONFIG.md.tooltip,
-          )}
-        >
-          <div className="flex items-center space-x-2 mb-1">
-            <config.icon className={cn("w-4 h-4", config.iconColor)} />
-            <span className="font-semibold text-white">{t.label}</span>
-          </div>
-          <p className="text-gray-300 text-xs">{t.tooltip}</p>
-          <div className="mt-1.5 pt-1.5 border-t border-white/10">
-            <div className="flex items-center space-x-1.5">
-              <Sparkles className="w-3 h-3 text-gold-400" />
-              <span className="text-gold-300 text-xs">{t.benefit}</span>
+      <AnimatePresence>
+        {isVisible && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
+          >
+            {/* Tooltip card: 8px grid padding */}
+            <div className="px-4 py-3 whitespace-nowrap bg-white border-2 border-black shadow-[4px_4px_0px_#000000]">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center w-4 h-4 text-[7px] font-pixel font-bold border-[1.5px] border-black leading-none",
+                    config.bg,
+                    config.text,
+                  )}
+                >
+                  {config.letter}
+                </span>
+                <span className="font-heading font-bold text-xs text-black uppercase leading-none">
+                  {t.label}
+                </span>
+              </div>
+              <p className="text-[#424242] text-xs m-0 leading-normal">
+                {t.tooltip}
+              </p>
+              <div className="mt-2 pt-2 border-t border-dashed border-[#E0E0E0]">
+                <div className="flex items-center gap-1">
+                  <Star
+                    className="w-3 h-3 text-[#424242]"
+                    strokeWidth={2.5}
+                    fill="currentColor"
+                  />
+                  <span className="text-[#424242] text-xs font-bold leading-none">
+                    {t.benefit}
+                  </span>
+                </div>
+              </div>
+              {/* Arrow: centered */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black" />
             </div>
-          </div>
-          {/* Tooltip arrow */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 glass-md border-r border-b border-white/20" />
-        </div>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Badge Component
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Main Badge Component ────────────────────────────────────────────────
 export function VerificationBadge({
   tier,
   size = "md",
@@ -232,66 +193,38 @@ export function VerificationBadge({
   className,
   onClick,
 }: VerificationBadgeProps) {
-  const [language, setLanguage] = useState<"en" | "hi">("en");
+  const [language] = useState<"en" | "hi">("en");
   const config = BADGE_CONFIG[tier];
   const sizes = SIZE_CONFIG[size];
-  const Icon = config.icon;
 
   const badgeContent = (
     <motion.div
       onClick={onClick}
       className={cn(
-        "relative rounded-full flex items-center justify-center",
-        "bg-gradient-to-br",
-        config.bgGradient,
-        "border",
-        config.borderColor,
+        "relative flex items-center justify-center",
+        config.bg,
+        config.text,
         sizes.container,
-        onClick && "cursor-pointer hover:scale-110 transition-transform",
+        sizes.border,
+        "border-black",
+        "shadow-[2px_2px_0px_#000000]",
+        "font-pixel font-bold leading-none",
+        sizes.fontSize,
+        "select-none",
+        onClick &&
+          cn(
+            "cursor-pointer",
+            "transition-[transform,box-shadow] duration-150",
+            "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#000000]",
+            "active:!translate-x-[2px] active:!translate-y-[2px] active:!shadow-none",
+          ),
         className,
       )}
-      whileHover={onClick ? { scale: 1.1 } : {}}
-      whileTap={onClick ? { scale: 0.95 } : {}}
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
     >
-      {/* Shine effect for Gold badge */}
-      {tier === "gold" && (
-        <motion.div
-          animate={{
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/30 to-transparent"
-        />
-      )}
-
-      {/* Subtle pulse for Gold badge */}
-      {tier === "gold" && (
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.5, 0, 0.5],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className={cn(
-            "absolute inset-0 rounded-full",
-            "bg-gradient-to-br",
-            config.gradient,
-            "blur-md",
-            config.pulseColor,
-          )}
-        />
-      )}
-
-      {/* Badge icon */}
-      <Icon className={cn("relative z-10", sizes.icon, config.iconColor)} />
+      {config.letter}
     </motion.div>
   );
 
@@ -306,9 +239,7 @@ export function VerificationBadge({
   return badgeContent;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Badge Group Component (for showing all earned badges)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Badge Group ─────────────────────────────────────────────────────────
 export function VerificationBadgeGroup({
   tiers,
   size = "md",
@@ -316,13 +247,12 @@ export function VerificationBadgeGroup({
   tiers: VerificationTier[];
   size?: "sm" | "md" | "lg";
 }) {
-  // Sort by tier order
   const sortedTiers = [...tiers].sort(
     (a, b) => BADGE_CONFIG[b].order - BADGE_CONFIG[a].order,
   );
 
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-1">
       {sortedTiers.map((tier) => (
         <VerificationBadge key={tier} tier={tier} size={size} showTooltip />
       ))}
@@ -330,9 +260,7 @@ export function VerificationBadgeGroup({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Compact Badge (for inline use with names)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Compact Inline Badge ────────────────────────────────────────────────
 export function VerificationBadgeInline({
   tier,
   className,
@@ -345,14 +273,12 @@ export function VerificationBadgeInline({
       tier={tier}
       size="sm"
       showTooltip
-      className={cn("inline-block align-middle", className)}
+      className={cn("inline-flex align-middle", className)}
     />
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Large Badge (for profile headers)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Large Profile Badge ─────────────────────────────────────────────────
 export function VerificationBadgeLarge({
   tier,
   showLabel = true,
@@ -364,58 +290,40 @@ export function VerificationBadgeLarge({
 }) {
   const config = BADGE_CONFIG[tier];
   const t = BADGE_TRANSLATIONS[language][tier];
-  const Icon = config.icon;
 
   return (
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className={cn(
-        "inline-flex items-center space-x-2 px-3 py-1.5 rounded-full",
-        "bg-gradient-to-r",
-        config.bgGradient,
-        "border",
-        config.borderColor,
-      )}
+      className="inline-flex items-center gap-3 px-4 py-3 bg-[#F8F8F8] border-2 border-black shadow-[4px_4px_0px_#000000]"
     >
+      {/* Badge icon: 32px = 4 × 8px */}
       <div
         className={cn(
-          "relative rounded-full flex items-center justify-center",
-          "bg-gradient-to-br",
-          config.gradient,
-          "w-8 h-8",
+          "flex items-center justify-center w-8 h-8",
+          "border-2 border-black",
+          config.bg,
+          config.text,
+          "font-pixel font-bold text-sm leading-none",
         )}
       >
-        {tier === "gold" && (
-          <motion.div
-            animate={{
-              opacity: [0.3, 0.6, 0.3],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/30 to-transparent"
-          />
-        )}
-        <Icon className="relative z-10 w-5 h-5 text-white" />
+        {config.letter}
       </div>
       {showLabel && (
         <div>
-          <p className={cn("text-sm font-semibold", config.textColor)}>
+          <p className="text-sm font-heading font-bold text-black uppercase m-0 leading-tight">
             {t.label}
           </p>
-          <p className="text-xs text-gray-400">{t.benefit}</p>
+          <p className="text-xs text-[#9E9E9E] m-0 mt-0.5 leading-tight">
+            {t.benefit}
+          </p>
         </div>
       )}
     </motion.div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Verification Status Component (for profile settings)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Verification Status (Settings page) ─────────────────────────────────
 export function VerificationStatus({
   currentTier,
   onUpgrade,
@@ -443,74 +351,84 @@ export function VerificationStatus({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">
+        <h3 className="text-sm font-heading font-bold text-black uppercase tracking-wider m-0">
           {language === "en" ? "Verification Status" : "सत्यापन स्थिति"}
         </h3>
         <button
           onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-          className="text-xs text-gray-400 hover:text-white"
+          className="text-xs text-[#9E9E9E] hover:text-black border-b border-dotted border-[#9E9E9E] bg-transparent border-t-0 border-x-0 p-0 cursor-pointer"
         >
           {language === "en" ? "हिंदी" : "English"}
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {tiers.map(({ tier, locked }) => {
           const config = BADGE_CONFIG[tier];
           const t = BADGE_TRANSLATIONS[language][tier];
-          const Icon = config.icon;
           const isEarned = !locked;
 
           return (
             <motion.div
               key={tier}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               className={cn(
-                "flex items-center justify-between p-3 rounded-xl border transition-all",
+                "flex items-center justify-between p-4 border-2",
                 isEarned
-                  ? cn(
-                      "bg-gradient-to-r",
-                      config.bgGradient,
-                      config.borderColor,
-                    )
-                  : "bg-white/5 border-white/10",
+                  ? "bg-[#F8F8F8] border-black shadow-[2px_2px_0px_#000000]"
+                  : "bg-white border-dashed border-[#9E9E9E]",
               )}
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-3">
+                {/* Badge icon: 40px = 5 × 8px */}
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
+                    "w-10 h-10 flex items-center justify-center border-2 border-black font-pixel font-bold text-xs leading-none",
                     isEarned
-                      ? cn("bg-gradient-to-br", config.gradient)
-                      : "bg-white/10",
+                      ? cn(config.bg, config.text)
+                      : "bg-[#E0E0E0] text-[#9E9E9E]",
                   )}
                 >
                   {isEarned ? (
-                    <Icon className="w-5 h-5 text-white" />
+                    config.letter
                   ) : (
-                    <Shield className="w-5 h-5 text-gray-500" />
+                    <Shield
+                      className="w-5 h-5 text-[#9E9E9E]"
+                      strokeWidth={2}
+                    />
                   )}
                 </div>
                 <div>
                   <p
                     className={cn(
-                      "text-sm font-medium",
-                      isEarned ? "text-white" : "text-gray-500",
+                      "text-sm font-heading font-bold uppercase m-0 leading-tight",
+                      isEarned ? "text-black" : "text-[#9E9E9E]",
                     )}
                   >
                     {t.label}
                   </p>
-                  <p className="text-xs text-gray-400">{t.description}</p>
+                  <p className="text-xs text-[#9E9E9E] m-0 mt-0.5 leading-normal">
+                    {t.description}
+                  </p>
                 </div>
               </div>
 
               {isEarned ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2
+                  className="w-5 h-5 text-[#424242] flex-shrink-0"
+                  strokeWidth={2.5}
+                />
               ) : (
                 <button
                   onClick={() => onUpgrade(tier)}
-                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-saffron-500 to-rose-500 text-white text-xs font-medium hover:shadow-saffron-glow transition-shadow"
+                  className={cn(
+                    "px-4 py-2 text-xs font-heading font-bold uppercase flex-shrink-0",
+                    "bg-white text-black border-2 border-black shadow-[2px_2px_0px_#000000]",
+                    "transition-[transform,box-shadow] duration-150",
+                    "hover:bg-black hover:text-white hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#000000]",
+                    "cursor-pointer",
+                  )}
                 >
                   {language === "en" ? "Verify" : "सत्यापित करें"}
                 </button>
@@ -519,6 +437,81 @@ export function VerificationStatus({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Connected Verification Panel (with Firestore) ───────────────────────
+/**
+ * VerificationUpgradePanel — wraps VerificationStatus with actual
+ * Firestore updateVerificationLevel calls. Drop this into the
+ * profile page for a fully working verification upgrade flow.
+ *
+ * Usage:
+ *   <VerificationUpgradePanel uid="abc123" currentTier="bronze" />
+ */
+export function VerificationUpgradePanel({
+  uid,
+  currentTier,
+  onLevelChanged,
+}: {
+  uid: string;
+  currentTier: VerificationTier | null;
+  onLevelChanged?: (newTier: VerificationTier) => void;
+}) {
+  const [tier, setTier] = useState<VerificationTier | null>(currentTier);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
+  const handleUpgrade = async (targetTier: VerificationTier) => {
+    setIsUpgrading(true);
+    setUpgradeError(null);
+    try {
+      // Dynamic import to avoid pulling Firestore into the initial bundle
+      // if VerificationBadge is used standalone (e.g. in match cards)
+      const { updateVerificationLevel } = await import("@/lib/firebase/users");
+      const updated = await updateVerificationLevel(uid, targetTier);
+      setTier(updated.verificationLevel);
+      onLevelChanged?.(updated.verificationLevel);
+    } catch (err: any) {
+      setUpgradeError(err?.en ?? "Verification failed. Please try again.");
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
+
+  return (
+    <div>
+      <VerificationStatus currentTier={tier} onUpgrade={handleUpgrade} />
+
+      <AnimatePresence>
+        {isUpgrading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="mt-3 flex items-center gap-2 text-[#9E9E9E]"
+          >
+            <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin" />
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Verifying…
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {upgradeError && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mt-3 p-3 bg-white border-2 border-dashed border-black"
+          >
+            <p className="text-xs text-[#212121] font-medium">{upgradeError}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

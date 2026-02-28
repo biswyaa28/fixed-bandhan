@@ -1,0 +1,28 @@
+# Bandhan AI Security Policy
+# https://bandhan.ai/.well-known/security.txt
+# This file follows the RFC 9116 standard.
+
+Contact: mailto:security@bandhan.ai
+Contact: mailto:dpo@bandhan.ai
+Expires: 2027-02-28T23:59:59.000Z
+Preferred-Languages: en, hi
+Canonical: https://bandhan.ai/.well-known/security.txt
+Policy: https://bandhan.ai/privacy
+
+# Scope
+# We welcome reports about vulnerabilities in:
+#   - bandhan.ai (web app)
+#   - app.bandhan.ai (PWA)
+#   - *.bandhan.ai (all subdomains)
+#   - Bandhan AI Android/iOS apps
+#
+# Out of scope:
+#   - Third-party services (Firebase, Razorpay)
+#   - Social engineering attacks
+#   - Denial of service (DoS)
+#
+# Acknowledgement:
+# We will acknowledge valid reports within 48 hours and
+# aim to resolve critical issues within 7 days.
+# Responsible disclosure researchers will be credited on our
+# security hall of fame (with consent).

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Check,
   X,
@@ -22,9 +22,9 @@ import {
   Building,
   Copy,
   CheckCircle2,
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+} from "lucide-react";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return twMerge(clsx(classes));
@@ -35,70 +35,70 @@ function cn(...classes: (string | undefined | null | false)[]) {
 // ─────────────────────────────────────────────────────────────────────────────
 const translations = {
   en: {
-    unlockPremium: 'Unlock Premium',
-    tagline: 'Less than ₹17/day – your journey to marriage',
-    taglineHi: '₹17/दिन से कम – आपकी शादी की यात्रा',
-    freePlan: 'Free',
-    premiumPlan: 'Premium',
-    familyPlan: 'Family',
-    currentPlan: 'Current Plan',
-    mostPopular: 'Most Popular',
-    bestValue: 'Best Value',
-    perMonth: '/month',
-    perYear: '/year',
-    save: 'Save',
-    billedYearly: 'Billed yearly',
-    features: 'Features',
-    upgrade: 'Upgrade',
-    current: 'Current',
-    scanToPay: 'Scan to Pay',
-    scanWith: 'Scan with PhonePe / GPay / Paytm',
-    orPayWithVpa: 'Or pay with UPI ID',
-    enterVpa: 'Enter UPI ID (e.g., yourname@upi)',
-    payNow: 'Pay Now',
-    processing: 'Processing...',
+    unlockPremium: "Unlock Premium",
+    tagline: "Less than ₹17/day – your journey to marriage",
+    taglineHi: "₹17/दिन से कम – आपकी शादी की यात्रा",
+    freePlan: "Free",
+    premiumPlan: "Premium",
+    familyPlan: "Family",
+    currentPlan: "Current Plan",
+    mostPopular: "Most Popular",
+    bestValue: "Best Value",
+    perMonth: "/month",
+    perYear: "/year",
+    save: "Save",
+    billedYearly: "Billed yearly",
+    features: "Features",
+    upgrade: "Upgrade",
+    current: "Current",
+    scanToPay: "Scan to Pay",
+    scanWith: "Scan with PhonePe / GPay / Paytm",
+    orPayWithVpa: "Or pay with UPI ID",
+    enterVpa: "Enter UPI ID (e.g., yourname@upi)",
+    payNow: "Pay Now",
+    processing: "Processing...",
     trustBadges: {
-      digilocker: 'DigiLocker Verified',
-      dpdp: 'DPDP Compliant',
-      guarantee: '7-day money back guarantee',
+      digilocker: "DigiLocker Verified",
+      dpdp: "DPDP Compliant",
+      guarantee: "7-day money back guarantee",
     },
-    hindi: 'हिंदी',
-    english: 'English',
-    whyPremium: 'Why Premium?',
-    whyPremiumHi: 'प्रीमियम क्यों?',
+    hindi: "हिंदी",
+    english: "English",
+    whyPremium: "Why Premium?",
+    whyPremiumHi: "प्रीमियम क्यों?",
   },
   hi: {
-    unlockPremium: 'प्रीमियम अनलॉक करें',
-    tagline: '₹17/दिन से कम – आपकी शादी की यात्रा',
-    taglineHi: 'Less than ₹17/day – your journey to marriage',
-    freePlan: 'मुफ्त',
-    premiumPlan: 'प्रीमियम',
-    familyPlan: 'परिवार',
-    currentPlan: 'वर्तमान योजना',
-    mostPopular: 'सबसे लोकप्रिय',
-    bestValue: 'सर्वोत्तम मूल्य',
-    perMonth: '/माह',
-    perYear: '/वर्ष',
-    save: 'बचाएं',
-    billedYearly: 'वार्षिक बिल',
-    features: 'विशेषताएं',
-    upgrade: 'अपग्रेड',
-    current: 'वर्तमान',
-    scanToPay: 'भुगतान करने के लिए स्कैन करें',
-    scanWith: 'PhonePe / GPay / Paytm से स्कैन करें',
-    orPayWithVpa: 'या UPI ID से भुगतान करें',
-    enterVpa: 'UPI ID दर्ज करें (जैसे, yourname@upi)',
-    payNow: 'अभी भुगतान करें',
-    processing: 'प्रसंस्करण...',
+    unlockPremium: "प्रीमियम अनलॉक करें",
+    tagline: "₹17/दिन से कम – आपकी शादी की यात्रा",
+    taglineHi: "Less than ₹17/day – your journey to marriage",
+    freePlan: "मुफ्त",
+    premiumPlan: "प्रीमियम",
+    familyPlan: "परिवार",
+    currentPlan: "वर्तमान योजना",
+    mostPopular: "सबसे लोकप्रिय",
+    bestValue: "सर्वोत्तम मूल्य",
+    perMonth: "/माह",
+    perYear: "/वर्ष",
+    save: "बचाएं",
+    billedYearly: "वार्षिक बिल",
+    features: "विशेषताएं",
+    upgrade: "अपग्रेड",
+    current: "वर्तमान",
+    scanToPay: "भुगतान करने के लिए स्कैन करें",
+    scanWith: "PhonePe / GPay / Paytm से स्कैन करें",
+    orPayWithVpa: "या UPI ID से भुगतान करें",
+    enterVpa: "UPI ID दर्ज करें (जैसे, yourname@upi)",
+    payNow: "अभी भुगतान करें",
+    processing: "प्रसंस्करण...",
     trustBadges: {
-      digilocker: 'DigiLocker सत्यापित',
-      dpdp: 'DPDP अनुपालित',
-      guarantee: '7-दिन की वापसी गारंटी',
+      digilocker: "DigiLocker सत्यापित",
+      dpdp: "DPDP अनुपालित",
+      guarantee: "7-दिन की वापसी गारंटी",
     },
-    hindi: 'English',
-    english: 'हिंदी',
-    whyPremium: 'प्रीमियम क्यों?',
-    whyPremiumHi: 'Why Premium?',
+    hindi: "English",
+    english: "हिंदी",
+    whyPremium: "प्रीमियम क्यों?",
+    whyPremiumHi: "Why Premium?",
   },
 };
 
@@ -106,28 +106,60 @@ const translations = {
 // Pricing Data
 // ─────────────────────────────────────────────────────────────────────────────
 const freeFeatures = [
-  { label: '5 profiles/day', labelHi: '5 प्रोफ़ाइल/दिन', included: true },
-  { label: '2 chats/day', labelHi: '2 चैट/दिन', included: true },
-  { label: 'Basic filters', labelHi: 'बुनियादी फ़िल्टर', included: true },
-  { label: 'Unlimited profiles', labelHi: 'असीमित प्रोफ़ाइल', included: false },
-  { label: 'Caste subgroup filters', labelHi: 'जाति उपसमूह फ़िल्टर', included: false },
-  { label: 'Family View PDF', labelHi: 'परिवार दृश्य PDF', included: false },
+  { label: "5 profiles/day", labelHi: "5 प्रोफ़ाइल/दिन", included: true },
+  { label: "2 chats/day", labelHi: "2 चैट/दिन", included: true },
+  { label: "Basic filters", labelHi: "बुनियादी फ़िल्टर", included: true },
+  { label: "Unlimited profiles", labelHi: "असीमित प्रोफ़ाइल", included: false },
+  {
+    label: "Caste subgroup filters",
+    labelHi: "जाति उपसमूह फ़िल्टर",
+    included: false,
+  },
+  { label: "Family View PDF", labelHi: "परिवार दृश्य PDF", included: false },
 ];
 
 const premiumFeatures = [
-  { label: 'Unlimited profiles', labelHi: 'असीमित प्रोफ़ाइल', icon: Users },
-  { label: 'Unlimited chats', labelHi: 'असीमित चैट', icon: MessageCircle },
-  { label: 'Advanced filters (Caste, Gotra)', labelHi: 'उन्नत फ़िल्टर (जाति, गोत्र)', icon: Filter },
-  { label: 'Family View PDF download', labelHi: 'परिवार दृश्य PDF डाउनलोड', icon: FileText },
-  { label: 'Compatibility insights', labelHi: 'अनुकूलता अंतर्दृष्टि', icon: Sparkles },
-  { label: 'Priority customer support', labelHi: 'प्राथमिकता ग्राहक सहायता', icon: Zap },
+  { label: "Unlimited profiles", labelHi: "असीमित प्रोफ़ाइल", icon: Users },
+  { label: "Unlimited chats", labelHi: "असीमित चैट", icon: MessageCircle },
+  {
+    label: "Advanced filters (Caste, Gotra)",
+    labelHi: "उन्नत फ़िल्टर (जाति, गोत्र)",
+    icon: Filter,
+  },
+  {
+    label: "Family View PDF download",
+    labelHi: "परिवार दृश्य PDF डाउनलोड",
+    icon: FileText,
+  },
+  {
+    label: "Compatibility insights",
+    labelHi: "अनुकूलता अंतर्दृष्टि",
+    icon: Sparkles,
+  },
+  {
+    label: "Priority customer support",
+    labelHi: "प्राथमिकता ग्राहक सहायता",
+    icon: Zap,
+  },
 ];
 
 const familyFeatures = [
-  { label: '2 profiles (siblings)', labelHi: '2 प्रोफ़ाइल (भाई-बहन)', icon: Users },
-  { label: 'Parent dashboard', labelHi: 'माता-पिता डैशबोर्ड', icon: Building },
-  { label: 'Shared matching preferences', labelHi: 'साझा मिलान प्राथमिकताएं', icon: Filter },
-  { label: 'All Premium features', labelHi: 'सभी प्रीमियम सुविधाएं', icon: Crown },
+  {
+    label: "2 profiles (siblings)",
+    labelHi: "2 प्रोफ़ाइल (भाई-बहन)",
+    icon: Users,
+  },
+  { label: "Parent dashboard", labelHi: "माता-पिता डैशबोर्ड", icon: Building },
+  {
+    label: "Shared matching preferences",
+    labelHi: "साझा मिलान प्राथमिकताएं",
+    icon: Filter,
+  },
+  {
+    label: "All Premium features",
+    labelHi: "सभी प्रीमियम सुविधाएं",
+    icon: Crown,
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,7 +183,12 @@ function PricingCard({
   period: string;
   badge?: string;
   badgeColor?: string;
-  features: { label: string; labelHi: string; included?: boolean; icon?: React.ComponentType<{ className?: string }> }[];
+  features: {
+    label: string;
+    labelHi: string;
+    included?: boolean;
+    icon?: React.ComponentType<{ className?: string }>;
+  }[];
   isCurrent?: boolean;
   highlight?: boolean;
   onSelect: () => void;
@@ -160,26 +197,60 @@ function PricingCard({
     <motion.div
       whileHover={{ y: -4 }}
       className={cn(
-        'relative rounded-2xl p-5 border transition-all duration-300',
+        "relative rounded-2xl p-5 border transition-all duration-200",
         highlight
-          ? 'bg-gradient-to-b from-saffron-500/10 via-rose-500/10 to-violet-500/10 border-saffron-500/50 scale-105 shadow-xl shadow-saffron-500/20'
-          : 'glass-md border-white/10 hover:border-white/20'
+          ? "bg-ink-900 border-ink-700 shadow-lg text-white"
+          : "bg-white border-ink-200 hover:border-ink-300 hover:shadow-sm",
       )}
     >
       {/* Badge */}
       {badge && (
-        <div className={cn('absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold', badgeColor || 'bg-violet-500/20 text-violet-300 border border-violet-500/30')}>
+        <div
+          className={cn(
+            "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold",
+            badgeColor ||
+              "bg-violet-500/20 text-violet-300 border border-violet-500/30",
+          )}
+        >
           {badge}
         </div>
       )}
 
       {/* Header */}
       <div className="text-center mb-4 pt-2">
-        <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
-        <p className="text-xs text-midnight-400 hindi-text">{titleHi}</p>
+        <h3
+          className={cn(
+            "text-lg font-bold mb-1",
+            highlight ? "text-white" : "text-ink-900",
+          )}
+        >
+          {title}
+        </h3>
+        <p
+          className={cn(
+            "text-xs hindi-text",
+            highlight ? "text-white/60" : "text-ink-400",
+          )}
+        >
+          {titleHi}
+        </p>
         <div className="mt-3">
-          <span className="text-3xl font-bold text-white">{price}</span>
-          <span className="text-sm text-midnight-400">{period}</span>
+          <span
+            className={cn(
+              "text-3xl font-bold",
+              highlight ? "text-white" : "text-ink-900",
+            )}
+          >
+            {price}
+          </span>
+          <span
+            className={cn(
+              "text-sm",
+              highlight ? "text-white/50" : "text-ink-400",
+            )}
+          >
+            {period}
+          </span>
         </div>
       </div>
 
@@ -187,18 +258,33 @@ function PricingCard({
       <div className="space-y-2.5 mb-5">
         {features.map((feature, index) => (
           <div key={index} className="flex items-start space-x-2">
-            {'included' in feature ? (
+            {"included" in feature ? (
               feature.included ? (
-                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <Check className="w-4 h-4 text-sage-500 flex-shrink-0 mt-0.5" />
               ) : (
-                <X className="w-4 h-4 text-midnight-500 flex-shrink-0 mt-0.5" />
+                <X className="w-4 h-4 text-ink-300 flex-shrink-0 mt-0.5" />
               )
             ) : (
               feature.icon && (
-                <feature.icon className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" />
+                <feature.icon
+                  className={cn(
+                    "w-4 h-4 flex-shrink-0 mt-0.5",
+                    highlight ? "text-lavender-300" : "text-lavender-500",
+                  )}
+                />
               )
             )}
-            <span className={cn('text-sm', 'included' in feature && !feature.included ? 'text-midnight-500 line-through' : 'text-midnight-200')}>
+            <span
+              className={cn(
+                "text-sm",
+                "included" in feature && !feature.included
+                  ? "line-through " +
+                      (highlight ? "text-white/30" : "text-ink-300")
+                  : highlight
+                    ? "text-white/80"
+                    : "text-ink-700",
+              )}
+            >
               {feature.label}
             </span>
           </div>
@@ -210,27 +296,35 @@ function PricingCard({
         onClick={onSelect}
         disabled={isCurrent}
         className={cn(
-          'w-full py-3 rounded-xl font-semibold transition-all duration-200',
+          "w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200",
           isCurrent
-            ? 'bg-midnight-700/50 text-midnight-400 cursor-not-allowed'
+            ? "bg-ink-100 text-ink-400 cursor-not-allowed"
             : highlight
-            ? 'bg-gradient-to-r from-saffron-500 to-rose-500 text-white hover:shadow-saffron-glow'
-            : 'glass-sm border border-white/10 text-midnight-200 hover:bg-white/5'
+              ? "bg-white text-ink-900 hover:bg-ink-50"
+              : "bg-ink-900 text-white hover:bg-ink-700",
         )}
       >
-        {isCurrent ? 'Current' : 'Upgrade'}
+        {isCurrent ? "Current" : "Upgrade"}
       </button>
     </motion.div>
   );
 }
 
-function TrustBadge({ icon: Icon, label, labelHi }: { icon: React.ComponentType<{ className?: string }>; label: string; labelHi: string }) {
+function TrustBadge({
+  icon: Icon,
+  label,
+  labelHi,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  labelHi: string;
+}) {
   return (
-    <div className="flex items-center space-x-2 px-3 py-2 rounded-lg glass-sm border border-white/10">
-      <Icon className="w-4 h-4 text-emerald-400" />
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-ink-200">
+      <Icon className="w-4 h-4 text-sage-500" />
       <div>
-        <p className="text-xs text-midnight-200">{label}</p>
-        <p className="text-[10px] text-midnight-500 hindi-text">{labelHi}</p>
+        <p className="text-xs text-ink-700 font-medium">{label}</p>
+        <p className="text-[10px] text-ink-400 hindi-text">{labelHi}</p>
       </div>
     </div>
   );
@@ -241,9 +335,9 @@ function UPIPayment({
   language,
 }: {
   onPaymentComplete: () => void;
-  language: 'en' | 'hi';
+  language: "en" | "hi";
 }) {
-  const [vpa, setVpa] = useState('');
+  const [vpa, setVpa] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -258,7 +352,7 @@ function UPIPayment({
   };
 
   const handleCopyVPA = () => {
-    navigator.clipboard.writeText('bandhan@upi');
+    navigator.clipboard.writeText("bandhan@upi");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -267,28 +361,11 @@ function UPIPayment({
     <div className="space-y-4">
       {/* QR Code */}
       <div className="flex flex-col items-center">
-        <div className="w-48 h-48 rounded-2xl bg-white p-3 border-4 border-saffron-500/30 shadow-lg shadow-saffron-500/20">
-          <div className="w-full h-full bg-gradient-to-br from-midnight-900 to-midnight-800 rounded-xl flex items-center justify-center relative overflow-hidden">
-            {/* Simulated QR Pattern */}
-            <div className="absolute inset-2 grid grid-cols-6 gap-1">
-              {Array.from({ length: 36 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'rounded-sm',
-                    Math.random() > 0.5 ? 'bg-midnight-900' : 'bg-white'
-                  )}
-                />
-              ))}
-            </div>
-            {/* Center Logo */}
-            <div className="relative z-10 w-12 h-12 rounded-lg bg-gradient-to-br from-saffron-500 to-rose-500 flex items-center justify-center">
-              <QrCode className="w-6 h-6 text-white" />
-            </div>
-          </div>
+        <div className="w-44 h-44 rounded-2xl bg-ink-50 border border-ink-200 shadow-sm flex items-center justify-center">
+          <QrCode className="w-20 h-20 text-ink-300" />
         </div>
-        <p className="text-sm text-midnight-300 mt-3">{t.scanWith}</p>
-        <p className="text-xs text-midnight-500 hindi-text mt-0.5">
+        <p className="text-sm text-ink-500 mt-3">{t.scanWith}</p>
+        <p className="text-xs text-ink-400 hindi-text mt-0.5">
           PhonePe / GPay / Paytm से स्कैन करें
         </p>
       </div>
@@ -296,10 +373,10 @@ function UPIPayment({
       {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/10" />
+          <div className="w-full border-t border-ink-200" />
         </div>
         <div className="relative flex justify-center">
-          <span className="px-4 bg-transparent text-xs text-midnight-500">
+          <span className="px-4 bg-white text-xs text-ink-400">
             {t.orPayWithVpa}
           </span>
         </div>
@@ -313,7 +390,7 @@ function UPIPayment({
             value={vpa}
             onChange={(e) => setVpa(e.target.value)}
             placeholder={t.enterVpa}
-            className="w-full px-4 py-3 pr-12 rounded-xl bg-white/5 border border-white/10 text-midnight-100 placeholder:text-midnight-500 focus:outline-none focus:ring-2 focus:ring-saffron-500/50"
+            className="w-full px-4 py-3 pr-12 rounded-xl bg-white border border-ink-200 text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-lavender-200 focus:border-lavender-400"
           />
           <button
             onClick={handleCopyVPA}
@@ -349,44 +426,45 @@ function UPIPayment({
           onClick={handlePay}
           disabled={!vpa || isProcessing}
           className={cn(
-            'w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-200',
-            'bg-gradient-to-r from-saffron-500 to-rose-500 hover:shadow-saffron-glow',
-            (!vpa || isProcessing) && 'opacity-50 cursor-not-allowed hover:shadow-none'
+            "w-full py-3 rounded-xl font-semibold text-white text-sm transition-all",
+            "bg-ink-900 hover:bg-ink-700",
+            (!vpa || isProcessing) && "opacity-40 cursor-not-allowed",
           )}
         >
           {isProcessing ? (
-            <span className="flex items-center justify-center space-x-2">
+            <span className="flex items-center justify-center gap-2">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4" />
               </motion.div>
-              <span>{t.processing}</span>
+              {t.processing}
             </span>
           ) : (
-            <span className="flex items-center justify-center space-x-2">
-              <Shield className="w-5 h-5" />
-              <span>{t.payNow}</span>
+            <span className="flex items-center justify-center gap-2">
+              <Shield className="w-4 h-4" />
+              {t.payNow}
             </span>
           )}
         </button>
       </div>
 
       {/* Payment Methods */}
-      <div className="flex items-center justify-center space-x-3 pt-2">
-        <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center space-x-1.5">
-          <Smartphone className="w-4 h-4 text-violet-400" />
-          <span className="text-xs text-midnight-300">PhonePe</span>
-        </div>
-        <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center space-x-1.5">
-          <CreditCard className="w-4 h-4 text-emerald-400" />
-          <span className="text-xs text-midnight-300">GPay</span>
-        </div>
-        <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center space-x-1.5">
-          <Building className="w-4 h-4 text-blue-400" />
-          <span className="text-xs text-midnight-300">Paytm</span>
-        </div>
+      <div className="flex items-center justify-center gap-2 pt-2">
+        {[
+          { icon: Smartphone, label: "PhonePe" },
+          { icon: CreditCard, label: "GPay" },
+          { icon: Building, label: "Paytm" },
+        ].map(({ icon: Icon, label }) => (
+          <div
+            key={label}
+            className="px-3 py-1.5 rounded-lg bg-ink-50 border border-ink-200 flex items-center gap-1.5"
+          >
+            <Icon className="w-3.5 h-3.5 text-ink-400" />
+            <span className="text-xs text-ink-600">{label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -396,8 +474,10 @@ function UPIPayment({
 // Main Page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PremiumPage() {
-  const [language, setLanguage] = useState<'en' | 'hi'>('en');
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | 'family'>('yearly');
+  const [language, setLanguage] = useState<"en" | "hi">("en");
+  const [selectedPlan, setSelectedPlan] = useState<
+    "monthly" | "yearly" | "family"
+  >("yearly");
   const [showPayment, setShowPayment] = useState(false);
 
   const t = translations[language];
@@ -408,34 +488,28 @@ export default function PremiumPage() {
 
   const handlePaymentComplete = () => {
     // Handle successful payment
-    console.log('Payment complete!');
+    console.log("Payment complete!");
     setShowPayment(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero px-4 py-8 safe-top safe-bottom pb-16">
-      {/* Background Decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-saffron-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen bg-ink-50 px-4 py-8 safe-top safe-bottom pb-16">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-8"
+        className="relative z-10 mb-8 pt-12"
       >
         <div className="flex items-center justify-between mb-6">
-          <button className="p-2 rounded-xl glass-sm hover:bg-white/10 transition-colors">
-            <X className="w-5 h-5 text-midnight-300" />
+          <button className="p-2 rounded-xl border border-ink-200 text-ink-500 hover:bg-ink-50 transition-colors">
+            <X className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-            className="px-3 py-1.5 rounded-xl glass-sm text-sm text-midnight-300 hover:bg-white/10 transition-colors flex items-center space-x-1"
+            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+            className="px-3 py-1.5 rounded-xl border border-ink-200 text-sm text-ink-500 hover:bg-ink-50 transition-colors flex items-center gap-1.5"
           >
-            <Globe className="w-4 h-4" />
-            <span>{language === 'en' ? 'हिंदी' : 'English'}</span>
+            <Globe className="w-3.5 h-3.5" />
+            <span>{language === "en" ? "हिंदी" : "English"}</span>
           </button>
         </div>
 
@@ -444,16 +518,16 @@ export default function PremiumPage() {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: 'spring', delay: 0.2 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-saffron-500/20 to-rose-500/20 border border-saffron-500/30 mb-4"
+            transition={{ type: "spring", delay: 0.2 }}
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold-100 border border-gold-200 mb-4"
           >
-            <Crown className="w-8 h-8 text-saffron-400" />
+            <Crown className="w-7 h-7 text-gold-600" strokeWidth={1.5} />
           </motion.div>
-          <h1 className="text-3xl font-bold text-gradient-brand mb-2">
+          <h1 className="text-2xl font-bold text-ink-900 tracking-tight mb-2">
             {t.unlockPremium}
           </h1>
-          <p className="text-midnight-300">{t.tagline}</p>
-          <p className="text-midnight-500 text-sm hindi-text mt-1">{t.taglineHi}</p>
+          <p className="text-ink-500 text-sm">{t.tagline}</p>
+          <p className="text-ink-400 text-xs hindi-text mt-1">{t.taglineHi}</p>
         </div>
       </motion.header>
 
@@ -466,39 +540,39 @@ export default function PremiumPage() {
       >
         {/* Plan Toggle */}
         <div className="flex justify-center mb-6">
-          <div className="inline-flex p-1 rounded-xl glass-md border border-white/10">
+          <div className="inline-flex p-1 rounded-xl bg-ink-100 border border-ink-200">
             <button
-              onClick={() => setSelectedPlan('monthly')}
+              onClick={() => setSelectedPlan("monthly")}
               className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                selectedPlan === 'monthly'
-                  ? 'bg-saffron-500/20 text-saffron-300'
-                  : 'text-midnight-400 hover:text-midnight-200'
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                selectedPlan === "monthly"
+                  ? "bg-white text-ink-900 shadow-sm"
+                  : "text-ink-500 hover:text-ink-700",
               )}
             >
               Monthly
             </button>
             <button
-              onClick={() => setSelectedPlan('yearly')}
+              onClick={() => setSelectedPlan("yearly")}
               className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-1',
-                selectedPlan === 'yearly'
-                  ? 'bg-saffron-500/20 text-saffron-300'
-                  : 'text-midnight-400 hover:text-midnight-200'
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5",
+                selectedPlan === "yearly"
+                  ? "bg-white text-ink-900 shadow-sm"
+                  : "text-ink-500 hover:text-ink-700",
               )}
             >
               <span>Yearly</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">
+              <span className="px-1.5 py-0.5 rounded-full bg-sage-100 text-sage-700 text-[10px] font-bold">
                 -40%
               </span>
             </button>
             <button
-              onClick={() => setSelectedPlan('family')}
+              onClick={() => setSelectedPlan("family")}
               className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                selectedPlan === 'family'
-                  ? 'bg-saffron-500/20 text-saffron-300'
-                  : 'text-midnight-400 hover:text-midnight-200'
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                selectedPlan === "family"
+                  ? "bg-white text-ink-900 shadow-sm"
+                  : "text-ink-500 hover:text-ink-700",
               )}
             >
               Family
@@ -508,40 +582,37 @@ export default function PremiumPage() {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Free Plan */}
           <PricingCard
             title={t.freePlan}
             titleHi={translations.hi.freePlan}
             price="₹0"
             period={t.perMonth}
             badge={t.currentPlan}
-            badgeColor="bg-midnight-700/50 text-midnight-300 border border-white/10"
+            badgeColor="bg-ink-100 text-ink-500 border border-ink-200"
             features={freeFeatures}
             isCurrent
             onSelect={() => {}}
           />
 
-          {/* Premium Plan */}
           <PricingCard
             title={t.premiumPlan}
             titleHi={translations.hi.premiumPlan}
-            price={selectedPlan === 'yearly' ? '₹2,999' : '₹499'}
-            period={selectedPlan === 'yearly' ? t.perYear : t.perMonth}
-            badge={selectedPlan === 'yearly' ? t.mostPopular : undefined}
-            badgeColor="bg-gradient-to-r from-gold-500/20 to-saffron-500/20 text-gold-400 border border-gold-500/30"
+            price={selectedPlan === "yearly" ? "₹2,999" : "₹499"}
+            period={selectedPlan === "yearly" ? t.perYear : t.perMonth}
+            badge={selectedPlan === "yearly" ? t.mostPopular : undefined}
+            badgeColor="bg-gold-100 text-gold-700 border border-gold-200"
             features={premiumFeatures}
             highlight
             onSelect={handleUpgrade}
           />
 
-          {/* Family Plan */}
           <PricingCard
             title={t.familyPlan}
             titleHi={translations.hi.familyPlan}
             price="₹799"
             period={t.perMonth}
             badge={t.bestValue}
-            badgeColor="bg-gradient-to-r from-violet-500/20 to-rose-500/20 text-violet-400 border border-violet-500/30"
+            badgeColor="bg-lavender-100 text-lavender-700 border border-lavender-200"
             features={familyFeatures}
             onSelect={handleUpgrade}
           />

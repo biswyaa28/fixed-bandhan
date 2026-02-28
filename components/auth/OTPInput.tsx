@@ -1,593 +1,469 @@
 /**
- * Bandhan AI - Production OTP Verification Component
- * Indian-specific optimizations for PhonePe/Paytm-grade OTP flow
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Bandhan AI — OTP Input Component
+ * ─────────────────────────────────────────────────────────────────────────────
  *
- * Features:
- * - 6-digit OTP with auto-focus and auto-tab
- * - Persistent 30-second resend timer
- * - Carrier-specific SMS tips (Jio/Airtel/Vi)
- * - Bilingual error messages (English/Hindi)
- * - TRAI compliance disclaimer
- * - Phishing warning
- * - Retry limit tracking
- * - Success animation
- * - Screen reader accessible
+ * Production-grade 6-digit OTP input with:
+ *   • Auto-focus, auto-tab, paste support
+ *   • Indian carrier detection + SMS tips
+ *   • Bilingual error messages (English / Hindi)
+ *   • Retry tracking (max 3 attempts, then lockout)
+ *   • Persistent resend countdown timer
+ *   • TRAI compliance disclaimer
+ *   • Phishing warning
+ *   • Accessible (aria labels, keyboard nav)
+ *   • Comic book monochrome aesthetic
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useForm, useFieldArray } from "react-hook-form";
 import {
   Shield,
   ShieldAlert,
-  ShieldCheck,
-  AlertTriangle,
   CheckCircle2,
   XCircle,
   RotateCcw,
-  Smartphone,
   MessageSquare,
   Info,
-  Eye,
-  EyeOff,
   Lock,
   Timer,
   RefreshCw,
-  AlertCircle,
+  Globe,
 } from "lucide-react";
-import {
-  detectCarrier,
-  getCarrierSmsTip,
-  TRAI_DISCLAIMER,
-} from "@/lib/carrier-detection";
+import { detectCarrier, TRAI_DISCLAIMER } from "@/lib/carrier-detection";
 import { useCountdownTimer } from "@/hooks/useCountdownTimer";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { MAX_OTP_ATTEMPTS, OTP_LENGTH } from "@/lib/firebase/auth";
+import type { AuthError } from "@/lib/firebase/auth";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-interface OTPInputProps {
-  /** Phone number for display and carrier detection */
+
+export interface OTPInputProps {
+  /** Phone number the OTP was sent to (for display + carrier detection) */
   phoneNumber: string;
-  /** Callback when OTP is successfully verified */
+  /** Called when the user submits the OTP */
   onVerify: (otp: string) => Promise<void>;
-  /** Callback when resend is requested */
+  /** Called when the user taps "Resend" */
   onResend: () => Promise<void>;
-  /** Initial language preference */
+  /** Current attempt count (from AuthContext.otpAttempts) */
+  attempts?: number;
+  /** External error from AuthContext */
+  externalError?: AuthError | null;
+  /** Initial UI language */
   language?: "en" | "hi";
-  /** OTP length (default 6 for India) */
-  otpLength?: number;
-  /** Resend timer duration in seconds */
-  resendTimer?: number;
-  /** Maximum retry attempts before lockout */
-  maxRetries?: number;
-  /** OTP expiry time in minutes */
+  /** Resend cooldown in seconds (default 30) */
+  resendCooldown?: number;
+  /** OTP expiry display in minutes (default 5) */
   expiryMinutes?: number;
 }
 
-interface OTPFormData {
-  digits: { value: string }[];
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Strings
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Error Messages (Bilingual)
-// ─────────────────────────────────────────────────────────────────────────────
-const ERROR_MESSAGES = {
-  invalidOTP: {
-    en: "Invalid OTP. Please check and try again.",
-    hi: "अमान्य OTP। कृपया जांचें और पुनः प्रयास करें।",
+const STR = {
+  title: { en: "Verify OTP", hi: "OTP सत्यापित करें" },
+  subtitle: {
+    en: (ph: string) => `Enter the 6-digit code sent to ${ph}`,
+    hi: (ph: string) => `${ph} पर भेजा गया 6-अंकीय कोड दर्ज करें`,
   },
-  otpExpired: {
-    en: "OTP has expired. Please request a new one.",
-    hi: "OTP समाप्त हो गया है। कृपया नया अनुरोध करें।",
+  verify: { en: "Verify OTP", hi: "OTP सत्यापित करें" },
+  verifying: { en: "Verifying…", hi: "सत्यापित हो रहा है…" },
+  verified: { en: "Verified!", hi: "सत्यापित!" },
+  noCode: { en: "Didn't receive the code?", hi: "कोड नहीं मिला?" },
+  resend: { en: "Resend OTP", hi: "OTP पुनः भेजें" },
+  resendIn: { en: "Resend in", hi: "में पुनः भेजें" },
+  troubleshoot: {
+    en: "Troubleshooting tips",
+    hi: "ट्रबलशूटिंग टिप्स",
   },
-  networkError: {
-    en: "Network error. Please check your connection and try again.",
-    hi: "नेटवर्क त्रुटि। कृपया अपना कनेक्शन जांचें और पुनः प्रयास करें।",
-  },
-  tooManyAttempts: {
-    en: "Too many failed attempts. Please request a new OTP.",
-    hi: "बहुत सारे विफल प्रयास। कृपया नया OTP अनुरोध करें।",
-  },
-  otpNotReceived: {
-    en: "OTP not received? Try these troubleshooting steps:",
-    hi: "OTP नहीं मिला? ये ट्रबलशूटिंग चरण आज़माएं:",
-  },
-  phishingWarning: {
+  phishing: {
     en: "⚠️ Bandhan NEVER asks for your OTP. Never share with anyone.",
-    hi: "⚠️ बंधन कभी भी आपका OTP नहीं पूछता। किसी के साथ साझा न करें।",
+    hi: "⚠️ बंधन कभी भी आपका OTP नहीं माँगता। किसी के साथ साझा न करें।",
   },
-  retryAttemptsRemaining: {
-    en: (attempts: number) => `${attempts} attempts remaining`,
-    hi: (attempts: number) => `${attempts} प्रयास शेष`,
+  expiry: {
+    en: (m: number) => `OTP expires in ${m} minutes`,
+    hi: (m: number) => `OTP ${m} मिनट में समाप्त होगा`,
   },
-  lastAttempt: {
-    en: "⚠️ Last attempt remaining",
-    hi: "⚠️ अंतिम प्रयास शेष",
+  locked: {
+    en: "Too many failed attempts. Please resend a new OTP.",
+    hi: "बहुत सारे विफल प्रयास। कृपया नया OTP भेजें।",
   },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main Component
+// Component
 // ─────────────────────────────────────────────────────────────────────────────
+
 export function OTPInput({
   phoneNumber,
   onVerify,
   onResend,
-  language = "en",
-  otpLength = 6,
-  resendTimer = 30,
-  maxRetries = 3,
+  attempts = 0,
+  externalError,
+  language: langProp = "en",
+  resendCooldown = 30,
   expiryMinutes = 5,
 }: OTPInputProps) {
-  // State
+  // ── State ──
+  const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [errorHi, setErrorHi] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [showResendTips, setShowResendTips] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [languageState, setLanguageState] = useState<"en" | "hi">(language);
+  const [internalError, setInternalError] = useState<string | null>(null);
+  const [showTips, setShowTips] = useState(false);
+  const [lang, setLang] = useState<"en" | "hi">(langProp);
 
-  // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const isLocked = attempts >= MAX_OTP_ATTEMPTS;
+  const isComplete = digits.every((d) => d !== "");
 
-  // Carrier detection
+  // ── Carrier detection ──
   const carrier = detectCarrier(phoneNumber);
-  const carrierSmsTip = carrier.smsTips[languageState];
-  const carrierTroubleshooting = carrier.troubleshooting[languageState];
+  const smsTip = carrier.smsTips[lang];
+  const troubleSteps = carrier.troubleshooting[lang];
 
-  // Countdown timer for resend
+  // ── Resend timer ──
   const {
-    remaining,
-    isActive,
-    isComplete: isTimerComplete,
-    formatted,
+    remaining: timerRemaining,
+    isActive: timerActive,
+    formatted: timerFormatted,
     reset: resetTimer,
   } = useCountdownTimer({
-    duration: resendTimer,
+    duration: resendCooldown,
     storageKey: `otp-resend-${phoneNumber}`,
     autoStart: true,
-    onComplete: () => {
-      // Timer complete - enable resend button
-    },
   });
 
-  // Form setup
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<OTPFormData>({
-    defaultValues: {
-      digits: Array.from({ length: otpLength }, () => ({ value: "" })),
-    },
-    mode: "onChange",
-  });
+  // ── Display error (prefer external from AuthContext) ──
+  const displayError = externalError?.[lang] ?? internalError ?? null;
 
-  const digits = watch("digits");
-  const isComplete = digits.every((d) => d.value !== "");
+  // Focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Handlers
-  // ───────────────────────────────────────────────────────────────────────────
+  // ── Handlers ──
 
-  /**
-   * Handle digit input with auto-tab
-   */
-  const handleDigitChange = useCallback(
-    (index: number, value: string) => {
-      // Only allow single digit
-      const digit = value.replace(/\D/g, "").slice(-1);
+  const handleChange = useCallback((index: number, value: string) => {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    setInternalError(null);
 
-      setValue(`digits.${index}.value`, digit);
-      setError(null);
-      setErrorHi(null);
+    setDigits((prev) => {
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
 
-      // Auto-tab to next input
-      if (digit && index < otpLength - 1) {
-        inputRefs.current[index + 1]?.focus();
-      }
+    // Auto-tab forward
+    if (digit && index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  }, []);
 
-      // Auto-submit when all digits filled
-      if (digit && index === otpLength - 1) {
-        // Small delay for better UX
-        setTimeout(() => {
-          const otp = digits
-            .map((d, i) => (i === index ? digit : d.value))
-            .join("");
-          handleSubmitOTP(otp);
-        }, 150);
-      }
-    },
-    [digits, otpLength],
-  );
-
-  /**
-   * Handle backspace with auto-back
-   */
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Backspace" && !digits[index].value && index > 0) {
+      if (e.key === "Backspace" && !digits[index] && index > 0) {
         inputRefs.current[index - 1]?.focus();
       }
 
-      // Handle paste
+      // Paste support (Ctrl/Cmd+V)
       if (e.key === "v" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        navigator.clipboard.readText().then((pasted) => {
-          const otpDigits = pasted.replace(/\D/g, "").slice(0, otpLength);
-          otpDigits.split("").forEach((digit, i) => {
-            if (i < otpLength) {
-              setValue(`digits.${i}.value`, digit);
-            }
+        navigator.clipboard.readText().then((text) => {
+          const otpChars = text.replace(/\D/g, "").slice(0, OTP_LENGTH);
+          if (!otpChars) return;
+          setDigits((prev) => {
+            const next = [...prev];
+            otpChars.split("").forEach((ch, i) => {
+              if (i < OTP_LENGTH) next[i] = ch;
+            });
+            return next;
           });
-          // Focus on last filled or next empty
-          const nextIndex = Math.min(otpDigits.length, otpLength - 1);
-          inputRefs.current[nextIndex]?.focus();
+          const focusIdx = Math.min(otpChars.length, OTP_LENGTH - 1);
+          inputRefs.current[focusIdx]?.focus();
         });
       }
     },
-    [digits, otpLength],
+    [digits],
   );
 
-  /**
-   * Handle OTP verification
-   */
-  const handleSubmitOTP = async (otp?: string) => {
-    const otpValue = otp || digits.map((d) => d.value).join("");
+  const handleSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
+      const otp = digits.join("");
 
-    if (otpValue.length !== otpLength) {
-      setError(ERROR_MESSAGES.invalidOTP.en);
-      setErrorHi(ERROR_MESSAGES.invalidOTP.hi);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setErrorHi(null);
-
-    try {
-      await onVerify(otpValue);
-      setIsVerified(true);
-      resetTimer();
-    } catch (err: unknown) {
-      const errorMessage = err as {
-        userMessage?: string;
-        userMessageHi?: string;
-        message?: string;
-      };
-
-      // Increment retry count
-      const newRetryCount = retryCount + 1;
-      setRetryCount(newRetryCount);
-
-      // Check if max retries exceeded
-      if (newRetryCount >= maxRetries) {
-        setError(ERROR_MESSAGES.tooManyAttempts.en);
-        setErrorHi(ERROR_MESSAGES.tooManyAttempts.hi);
-        // Reset form
-        reset();
-        inputRefs.current[0]?.focus();
-      } else {
-        // Show error with retry count
-        const remaining = maxRetries - newRetryCount;
-        if (remaining === 1) {
-          setError(
-            `${ERROR_MESSAGES.invalidOTP.en} ${ERROR_MESSAGES.lastAttempt.en}`,
-          );
-          setErrorHi(
-            `${ERROR_MESSAGES.invalidOTP.hi} ${ERROR_MESSAGES.lastAttempt.hi}`,
-          );
-        } else {
-          setError(
-            `${ERROR_MESSAGES.invalidOTP.en} (${ERROR_MESSAGES.retryAttemptsRemaining.en(remaining)})`,
-          );
-          setErrorHi(
-            `${ERROR_MESSAGES.invalidOTP.hi} (${ERROR_MESSAGES.retryAttemptsRemaining.hi(remaining)})`,
-          );
-        }
-        // Reset form for retry
-        reset();
-        inputRefs.current[0]?.focus();
+      if (otp.length !== OTP_LENGTH) {
+        setInternalError(
+          lang === "en"
+            ? "Please enter all 6 digits."
+            : "कृपया सभी 6 अंक दर्ज करें।",
+        );
+        return;
       }
-    } finally {
-      setIsLoading(false);
+
+      if (isLocked) {
+        setInternalError(STR.locked[lang]);
+        return;
+      }
+
+      setIsLoading(true);
+      setInternalError(null);
+
+      try {
+        await onVerify(otp);
+        setIsVerified(true);
+      } catch {
+        // Error is set by AuthContext via externalError prop.
+        // Reset digits for retry.
+        setDigits(Array(OTP_LENGTH).fill(""));
+        inputRefs.current[0]?.focus();
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [digits, isLocked, lang, onVerify],
+  );
+
+  // Auto-submit when all digits are filled
+  useEffect(() => {
+    if (
+      digits.every((d) => d !== "") &&
+      !isLoading &&
+      !isVerified &&
+      !isLocked
+    ) {
+      const timer = setTimeout(() => handleSubmit(), 200);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [digits, isLoading, isVerified, isLocked, handleSubmit]);
 
-  /**
-   * Handle resend OTP
-   */
-  const handleResend = async () => {
-    if (!isComplete || isTimerComplete) return;
-
+  const handleResend = useCallback(async () => {
+    if (timerActive || isLoading) return;
     setIsLoading(true);
-    setError(null);
-    setErrorHi(null);
-    setRetryCount(0);
-
+    setInternalError(null);
     try {
       await onResend();
       resetTimer();
-      reset();
+      setDigits(Array(OTP_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
-      setShowResendTips(false);
-    } catch (err: unknown) {
-      const errorMessage = err as {
-        userMessage?: string;
-        userMessageHi?: string;
-        message?: string;
-      };
-      setError(errorMessage.userMessage || ERROR_MESSAGES.networkError.en);
-      setErrorHi(errorMessage.userMessageHi || ERROR_MESSAGES.networkError.hi);
+      setShowTips(false);
+    } catch {
+      // Error from AuthContext
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [timerActive, isLoading, onResend, resetTimer]);
 
-  /**
-   * Toggle language
-   */
-  const toggleLanguage = () => {
-    setLanguageState((prev) => (prev === "en" ? "hi" : "en"));
-  };
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Render
-  // ───────────────────────────────────────────────────────────────────────────
+  // ── Render ──
 
   return (
-    <div ref={containerRef} className="w-full max-w-md mx-auto">
-      {/* Header */}
+    <div className="w-full max-w-md mx-auto">
+      {/* ── Header ── */}
       <div className="text-center mb-6">
-        <div className="flex items-center justify-center space-x-2 mb-2">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-          >
-            <Shield className="w-8 h-8 text-saffron-500" />
-          </motion.div>
-        </div>
-        <h2 className="text-xl font-bold text-white mb-1">
-          {languageState === "en" ? "Verify OTP" : "OTP सत्यापित करें"}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", delay: 0.1 }}
+          className="w-12 h-12 mx-auto mb-3 border-2 border-black bg-[#F8F8F8] flex items-center justify-center shadow-[3px_3px_0px_#000000]"
+        >
+          <Shield className="w-6 h-6 text-black" strokeWidth={2} />
+        </motion.div>
+
+        <h2 className="text-lg font-bold text-[#212121] uppercase tracking-wide font-heading">
+          {STR.title[lang]}
         </h2>
-        <p className="text-sm text-gray-400">
-          {languageState === "en"
-            ? `Enter the 6-digit code sent to ${phoneNumber}`
-            : `6-अंकीय कोड दर्ज करें जो ${phoneNumber} पर भेजा गया है`}
+        <p className="text-xs text-[#9E9E9E] mt-1">
+          {STR.subtitle[lang](phoneNumber)}
         </p>
+
+        {/* Language toggle */}
+        <button
+          onClick={() => setLang((l) => (l === "en" ? "hi" : "en"))}
+          className="mt-2 inline-flex items-center gap-1 text-[10px] text-[#9E9E9E] hover:text-[#424242] bg-transparent border-none cursor-pointer"
+          aria-label="Toggle language"
+        >
+          <Globe className="w-3 h-3" />
+          {lang === "en" ? "हिंदी" : "English"}
+        </button>
       </div>
 
-      {/* Carrier SMS Tip */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-4 p-3 rounded-xl bg-saffron-500/10 border border-saffron-500/20"
-      >
-        <div className="flex items-start space-x-2">
-          <MessageSquare className="w-4 h-4 text-saffron-400 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-saffron-200">{carrierSmsTip}</p>
+      {/* ── Carrier SMS tip ── */}
+      <div className="mb-4 p-3 bg-[#F8F8F8] border-2 border-black">
+        <div className="flex items-start gap-2">
+          <MessageSquare
+            className="w-4 h-4 text-[#424242] flex-shrink-0 mt-0.5"
+            strokeWidth={2}
+          />
+          <p className="text-[11px] text-[#424242] leading-relaxed">{smsTip}</p>
         </div>
-      </motion.div>
+      </div>
 
-      {/* OTP Input Fields */}
-      <form onSubmit={handleSubmit(() => handleSubmitOTP())}>
-        <div className="flex justify-center gap-2 sm:gap-3 mb-6">
-          {Array.from({ length: otpLength }).map((_, index) => (
+      {/* ── OTP digit inputs ── */}
+      <form onSubmit={handleSubmit}>
+        <div
+          className="flex justify-center gap-2 sm:gap-3 mb-5"
+          role="group"
+          aria-label="OTP input"
+        >
+          {Array.from({ length: OTP_LENGTH }).map((_, i) => (
             <motion.input
-              key={index}
+              key={i}
               ref={(el) => {
-                inputRefs.current[index] = el;
+                inputRefs.current[i] = el;
               }}
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={1}
-              value={digits[index].value}
-              onChange={(e) => handleDigitChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              disabled={isLoading || isVerified}
-              aria-label={
-                languageState === "en"
-                  ? `Digit ${index + 1} of ${otpLength}`
-                  : `${otpLength} में से अंक ${index + 1}`
-              }
-              className={clsx(
-                "w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl",
-                "bg-white/5 border-2 transition-all duration-200",
-                "text-white placeholder-gray-600",
-                "focus:outline-none focus:border-saffron-500 focus:bg-white/10",
-                errors.digits?.[index]
-                  ? "border-red-500/50 focus:border-red-500"
-                  : "border-white/10 hover:border-white/20",
-                isLoading && "opacity-50 cursor-not-allowed",
-                isVerified && "border-emerald-500/50 bg-emerald-500/10",
-              )}
-              initial={{ scale: 0.8, opacity: 0 }}
+              value={digits[i]}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              disabled={isLoading || isVerified || isLocked}
+              aria-label={`Digit ${i + 1} of ${OTP_LENGTH}`}
+              className={[
+                "w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold",
+                "border-2 transition-all duration-150 outline-none",
+                "bg-white text-[#212121] placeholder-[#E0E0E0]",
+                isVerified
+                  ? "border-black bg-[#F8F8F8]"
+                  : displayError
+                    ? "border-black border-dashed"
+                    : "border-black focus:shadow-[0_0_0_3px_#FFFFFF,0_0_0_6px_#000000]",
+                (isLoading || isLocked) && "opacity-50 cursor-not-allowed",
+              ].join(" ")}
+              initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ delay: i * 0.04 }}
             />
           ))}
         </div>
 
-        {/* Loading Spinner */}
+        {/* ── Loading ── */}
         <AnimatePresence>
           {isLoading && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex justify-center mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex justify-center mb-4"
             >
-              <div className="flex items-center space-x-2 text-saffron-400">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </motion.div>
-                <span className="text-sm">
-                  {languageState === "en"
-                    ? "Verifying..."
-                    : "सत्यापित हो रहा है..."}
+              <div className="flex items-center gap-2 text-[#424242]">
+                <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={2} />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {STR.verifying[lang]}
                 </span>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Success State */}
+        {/* ── Success ── */}
         <AnimatePresence>
           {isVerified && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="flex justify-center mb-6"
+              className="flex justify-center mb-4"
             >
-              <div className="flex items-center space-x-2 text-emerald-400">
-                <CheckCircle2 className="w-6 h-6" />
-                <span className="text-sm font-medium">
-                  {languageState === "en"
-                    ? "Verified successfully!"
-                    : "सफलतापूर्वक सत्यापित!"}
+              <div className="flex items-center gap-2 text-[#212121]">
+                <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {STR.verified[lang]}
                 </span>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Error Message */}
+        {/* ── Error ── */}
         <AnimatePresence>
-          {error && !isVerified && (
+          {displayError && !isVerified && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20"
+              exit={{ opacity: 0, y: -6 }}
+              className="mb-4 p-3 bg-white border-2 border-dashed border-black"
             >
-              <div className="flex items-start space-x-2">
-                <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-red-300">{error}</p>
-                  {errorHi && languageState === "hi" && (
-                    <p className="text-xs text-red-400 mt-1">{errorHi}</p>
-                  )}
-                </div>
+              <div className="flex items-start gap-2">
+                <XCircle
+                  className="w-4 h-4 text-black flex-shrink-0 mt-0.5"
+                  strokeWidth={2.5}
+                />
+                <p className="text-xs text-[#212121] font-medium leading-relaxed">
+                  {displayError}
+                </p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Submit Button */}
+        {/* ── Submit button ── */}
         <motion.button
           type="submit"
-          disabled={!isComplete || isLoading || isVerified}
-          whileHover={{
-            scale: !isComplete || isLoading || isVerified ? 1 : 1.02,
-          }}
-          whileTap={{
-            scale: !isComplete || isLoading || isVerified ? 1 : 0.98,
-          }}
-          className={clsx(
-            "w-full py-3.5 rounded-xl font-semibold text-white mb-4",
-            "transition-all duration-300",
-            isComplete && !isLoading && !isVerified
-              ? "bg-gradient-to-r from-saffron-500 to-rose-500 hover:shadow-saffron-glow"
-              : "bg-gray-700/50 cursor-not-allowed opacity-50",
-          )}
+          disabled={!isComplete || isLoading || isVerified || isLocked}
+          whileTap={isComplete && !isLoading ? { scale: 0.97 } : undefined}
+          className={[
+            "w-full py-3 font-bold text-sm uppercase tracking-wider border-[3px] border-black transition-all duration-150",
+            isComplete && !isLoading && !isVerified && !isLocked
+              ? "bg-black text-white shadow-[4px_4px_0px_#000000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#000000] cursor-pointer"
+              : "bg-[#E0E0E0] text-[#9E9E9E] border-[#9E9E9E] cursor-not-allowed",
+          ].join(" ")}
         >
           {isLoading
-            ? languageState === "en"
-              ? "Verifying..."
-              : "सत्यापित हो रहा है..."
+            ? STR.verifying[lang]
             : isVerified
-              ? languageState === "en"
-                ? "Verified!"
-                : "सत्यापित!"
-              : languageState === "en"
-                ? "Verify OTP"
-                : "OTP सत्यापित करें"}
+              ? STR.verified[lang]
+              : STR.verify[lang]}
         </motion.button>
       </form>
 
-      {/* Resend Section */}
-      <div className="text-center mb-6">
-        <p className="text-sm text-gray-400 mb-2">
-          {languageState === "en"
-            ? "Didn't receive the code?"
-            : "कोड नहीं मिला?"}{" "}
-          {isActive ? (
-            <span className="text-gray-500">
-              {languageState === "en" ? "Resend in" : "में पुनः भेजें"}{" "}
-              {formatted}
-            </span>
-          ) : (
-            <button
-              onClick={handleResend}
-              disabled={isLoading}
-              className="text-saffron-400 hover:text-saffron-300 font-medium inline-flex items-center space-x-1 transition-colors disabled:opacity-50"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>
-                {languageState === "en" ? "Resend OTP" : "OTP पुनः भेजें"}
-              </span>
-            </button>
-          )}
-        </p>
+      {/* ── Resend section ── */}
+      <div className="text-center mt-5 mb-4">
+        <p className="text-xs text-[#9E9E9E] mb-1">{STR.noCode[lang]}</p>
 
-        {/* Resend Tips Toggle */}
-        <button
-          onClick={() => setShowResendTips(!showResendTips)}
-          className="text-xs text-gray-500 hover:text-gray-400 inline-flex items-center space-x-1"
-        >
-          <Info className="w-3.5 h-3.5" />
-          <span>
-            {languageState === "en"
-              ? "Troubleshooting tips"
-              : "ट्रबलशूटिंग टिप्स"}
+        {timerActive ? (
+          <span className="text-xs text-[#9E9E9E]">
+            {STR.resendIn[lang]} {timerFormatted}
           </span>
-          {showResendTips ? (
-            <motion.span
-              initial={{ rotate: 0 }}
-              animate={{ rotate: 180 }}
-              transition={{ duration: 0.2 }}
-            >
-              ▲
-            </motion.span>
-          ) : (
-            <span>▼</span>
-          )}
-        </button>
+        ) : (
+          <button
+            onClick={handleResend}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 text-xs font-bold text-black bg-transparent border-none cursor-pointer hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RotateCcw className="w-3.5 h-3.5" strokeWidth={2} />
+            {STR.resend[lang]}
+          </button>
+        )}
 
-        {/* Resend Tips */}
+        {/* Troubleshooting toggle */}
+        <div className="mt-2">
+          <button
+            onClick={() => setShowTips((s) => !s)}
+            className="text-[10px] text-[#9E9E9E] hover:text-[#424242] bg-transparent border-none cursor-pointer inline-flex items-center gap-1"
+          >
+            <Info className="w-3 h-3" />
+            {STR.troubleshoot[lang]} {showTips ? "▲" : "▼"}
+          </button>
+        </div>
+
         <AnimatePresence>
-          {showResendTips && (
+          {showTips && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-3 p-4 rounded-xl bg-white/5 border border-white/10 text-left"
+              className="mt-2 p-3 bg-[#F8F8F8] border-2 border-black text-left"
             >
-              <p className="text-xs text-gray-300 mb-2">
-                {languageState === "en"
-                  ? ERROR_MESSAGES.otpNotReceived.en
-                  : ERROR_MESSAGES.otpNotReceived.hi}
-              </p>
-              <ul className="space-y-1.5">
-                {carrierTroubleshooting.map((tip, index) => (
-                  <li key={index} className="flex items-start space-x-2">
-                    <span className="text-saffron-400 mt-0.5">•</span>
-                    <span className="text-xs text-gray-400">{tip}</span>
+              <ul className="space-y-1">
+                {troubleSteps.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-black mt-0.5 text-[10px]">•</span>
+                    <span className="text-[10px] text-[#424242]">{tip}</span>
                   </li>
                 ))}
               </ul>
@@ -596,61 +472,48 @@ export function OTPInput({
         </AnimatePresence>
       </div>
 
-      {/* Phishing Warning */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4"
-      >
-        <div className="flex items-start space-x-2">
-          <ShieldAlert className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+      {/* ── Phishing warning ── */}
+      <div className="p-3 bg-[#F8F8F8] border-2 border-black mb-3">
+        <div className="flex items-start gap-2">
+          <ShieldAlert
+            className="w-4 h-4 text-black flex-shrink-0 mt-0.5"
+            strokeWidth={2}
+          />
           <div>
-            <p className="text-xs text-amber-200 font-medium">
-              {ERROR_MESSAGES.phishingWarning.en}
+            <p className="text-[10px] text-[#212121] font-bold leading-relaxed">
+              {STR.phishing.en}
             </p>
-            <p className="text-xs text-amber-300/70 mt-0.5">
-              {ERROR_MESSAGES.phishingWarning.hi}
+            <p className="text-[10px] text-[#424242] mt-0.5 leading-relaxed">
+              {STR.phishing.hi}
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* TRAI Compliance Disclaimer */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 text-xs text-gray-500"
-      >
-        <div className="flex items-start space-x-2">
-          <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+      {/* ── TRAI disclaimer ── */}
+      <div className="p-3 bg-white border border-[#E0E0E0] text-[10px] text-[#9E9E9E]">
+        <div className="flex items-start gap-2">
+          <Lock className="w-3 h-3 flex-shrink-0 mt-0.5" strokeWidth={2} />
           <div>
-            <p className="font-medium text-gray-400">
+            <p className="font-bold text-[#424242]">
               {TRAI_DISCLAIMER.en.heading}
             </p>
-            <p className="mt-1">{TRAI_DISCLAIMER.en.content}</p>
-            <p className="mt-1 text-gray-600">{TRAI_DISCLAIMER.hi.content}</p>
+            <p className="mt-1 leading-relaxed">
+              {TRAI_DISCLAIMER[lang].content}
+            </p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Expiry Notice */}
-      <div className="mt-4 text-center">
-        <div className="inline-flex items-center space-x-1.5 text-xs text-gray-500">
-          <Timer className="w-3.5 h-3.5" />
-          <span>
-            {languageState === "en"
-              ? `OTP expires in ${expiryMinutes} minutes`
-              : `OTP ${expiryMinutes} मिनट में समाप्त हो जाता है`}
-          </span>
-        </div>
+      {/* ── Expiry notice ── */}
+      <div className="mt-3 text-center">
+        <span className="inline-flex items-center gap-1 text-[10px] text-[#9E9E9E]">
+          <Timer className="w-3 h-3" />
+          {STR.expiry[lang](expiryMinutes)}
+        </span>
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Export
-// ─────────────────────────────────────────────────────────────────────────────
 export default OTPInput;

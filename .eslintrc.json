@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json.schemastore.org/eslintrc.json",
+  "root": true,
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:jsx-a11y/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "ecmaFeatures": { "jsx": true }
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "react",
+    "react-hooks",
+    "jsx-a11y"
+  ],
+  "settings": {
+    "react": { "version": "detect" }
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    // ── React ────────────────────────────────────────────────────────
+    // Next.js handles React import automatically
+    "react/react-in-jsx-scope": "off",
+    // Prop types not needed with TypeScript
+    "react/prop-types": "off",
+    // Prevent missing key in iterators (very common mistake)
+    "react/jsx-key": ["error", { "checkFragmentShorthand": true }],
+    // No spreading unknown props (catches bugs early)
+    "react/jsx-no-target-blank": "error",
+    // Display name for debugging
+    "react/display-name": "warn",
+    // No children in void elements
+    "react/void-dom-elements-no-children": "error",
+    // No deprecated APIs
+    "react/no-deprecated": "warn",
+
+    // ── React Hooks ──────────────────────────────────────────────────
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+
+    // ── TypeScript ───────────────────────────────────────────────────
+    // Allow `any` with a warning (not error — too strict for fast iteration)
+    "@typescript-eslint/no-explicit-any": "warn",
+    // Allow unused vars that start with _ (convention for intentional ignoring)
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    // Allow empty functions (common in default props, noop callbacks)
+    "@typescript-eslint/no-empty-function": "off",
+    // Allow require() for next.config.js, tailwind.config.js etc
+    "@typescript-eslint/no-var-requires": "off",
+    // Allow non-null assertions with a warning (useful for Firebase refs)
+    "@typescript-eslint/no-non-null-assertion": "warn",
+
+    // ── Accessibility (jsx-a11y) ─────────────────────────────────────
+    // All images need alt text (critical for screen readers)
+    "jsx-a11y/alt-text": "error",
+    // Clickable elements need keyboard support
+    "jsx-a11y/click-events-have-key-events": "warn",
+    // No autofocus (disorienting for screen readers)
+    "jsx-a11y/no-autofocus": "warn",
+    // Headings must have content
+    "jsx-a11y/heading-has-content": "error",
+    // Anchors must have href or role
+    "jsx-a11y/anchor-is-valid": "warn",
+    // Labels must be associated with controls
+    "jsx-a11y/label-has-associated-control": "warn",
+    // Interactive elements must be focusable
+    "jsx-a11y/interactive-supports-focus": "warn",
+    // No non-interactive elements with handlers (div onClick)
+    "jsx-a11y/no-static-element-interactions": "warn",
+    // Role attribute must be valid
+    "jsx-a11y/aria-role": "error",
+
+    // ── General Quality ──────────────────────────────────────────────
+    // No console.log in production (use debug utility instead)
+    "no-console": ["warn", { "allow": ["warn", "error", "info"] }],
+    // No debugger statements committed
+    "no-debugger": "error",
+    // Prefer const over let
+    "prefer-const": "warn",
+    // No var (use let/const)
+    "no-var": "error",
+    // No duplicate imports
+    "no-duplicate-imports": "error",
+    // Consistent return
+    "consistent-return": "off",
+    // No alert() calls
+    "no-alert": "error",
+    // No eval() (security risk — CSP blocks it anyway)
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    // No document.write (security risk)
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "document.write",
+        "message": "Use React rendering instead."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      // Config files use CommonJS require()
+      "files": [
+        "*.config.js",
+        "*.config.ts",
+        "postcss.config.js",
+        "tailwind.config.js",
+        "next.config.js"
+      ],
+      "rules": {
+        "@typescript-eslint/no-var-requires": "off",
+        "no-console": "off"
+      }
+    },
+    {
+      // Test files can use console and any
+      "files": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "mocks/**"],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      // Scripts can use console
+      "files": ["scripts/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      // Seed data files are verbose by nature
+      "files": ["**/seed.ts", "**/demo-*.ts"],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "public/sw.js",
+    "public/workbox-*.js",
+    "public/firebase-messaging-sw.js",
+    "api/"
+  ]
+}

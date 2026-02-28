@@ -2,12 +2,15 @@
  * Bandhan AI - Firebase Authentication Module
  * Optimized for Indian SMS OTP authentication
  * Region: asia-south1 (Mumbai)
+ *
+ * NOTE: Firebase App + Auth initialisation is handled by
+ * lib/firebase/config.ts (the single source of truth).
+ * This module re-exports those singletons and adds OTP helpers.
  */
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { type FirebaseApp } from "firebase/app";
 import {
-  getAuth,
-  Auth,
+  type Auth,
   signInWithPhoneNumber,
   RecaptchaVerifier,
   ConfirmationResult,
@@ -17,51 +20,29 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User,
-} from 'firebase/auth';
+} from "firebase/auth";
+
+// ── Central singleton (no duplicate init) ────────────────────────────────────
+import {
+  firebaseApp as getAppInstance,
+  firebaseAuth as getAuthInstance,
+} from "@/lib/firebase/config";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Firebase Configuration (India Region - asia-south1)
-// ─────────────────────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.appspot.com`,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  // India-specific configuration
-  // Firebase automatically routes to nearest region (asia-south1 for India)
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Firebase App Initialization (Singleton Pattern)
+// Re-export app & auth from the central config so existing consumers
+// that import { app, auth } from '@/lib/firebase' keep working.
 // ─────────────────────────────────────────────────────────────────────────────
 let app: FirebaseApp;
 let auth: Auth;
 
-function initializeFirebase(): FirebaseApp {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  return app;
+if (typeof window !== "undefined") {
+  app = getAppInstance();
+  auth = getAuthInstance();
 }
 
 function getFirebaseAuth(): Auth {
-  if (!auth) {
-    auth = getAuth(app);
-    // Set persistence for Indian networks (may have intermittent connectivity)
-    // Note: In v9+, persistence is indexedDB by default for web
-  }
+  if (!auth) auth = getAuthInstance();
   return auth;
-}
-
-// Initialize on module load (client-side only)
-if (typeof window !== 'undefined') {
-  initializeFirebase();
-  getFirebaseAuth();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,17 +64,17 @@ export interface AuthError {
 // Indian Carrier Detection
 // ─────────────────────────────────────────────────────────────────────────────
 const INDIAN_CARRIERS = [
-  { prefix: ['6', '7'], name: 'Jio' },
-  { prefix: ['7', '8', '9'], name: 'Airtel' },
-  { prefix: ['7', '8', '9'], name: 'Vi (Vodafone Idea)' },
-  { prefix: ['6', '7', '8', '9'], name: 'BSNL' },
-  { prefix: ['9'], name: 'MTNL' },
+  { prefix: ["6", "7"], name: "Jio" },
+  { prefix: ["7", "8", "9"], name: "Airtel" },
+  { prefix: ["7", "8", "9"], name: "Vi (Vodafone Idea)" },
+  { prefix: ["6", "7", "8", "9"], name: "BSNL" },
+  { prefix: ["9"], name: "MTNL" },
 ] as const;
 
 function detectIndianCarrier(phoneNumber: string): string | null {
   // Extract digits after +91
-  const digits = phoneNumber.replace(/\D/g, '');
-  if (!digits.startsWith('91') || digits.length !== 12) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  if (!digits.startsWith("91") || digits.length !== 12) {
     return null;
   }
 
@@ -101,11 +82,11 @@ function detectIndianCarrier(phoneNumber: string): string | null {
 
   // Simple carrier detection based on first digit
   // Note: This is approximate; MNP (Mobile Number Portability) makes exact detection difficult
-  if (['6', '7'].includes(firstDigit)) return 'Jio';
-  if (['8'].includes(firstDigit)) return 'Airtel';
-  if (['9'].includes(firstDigit)) return 'Vi (Vodafone Idea)';
+  if (["6", "7"].includes(firstDigit)) return "Jio";
+  if (["8"].includes(firstDigit)) return "Airtel";
+  if (["9"].includes(firstDigit)) return "Vi (Vodafone Idea)";
 
-  return 'Unknown Carrier';
+  return "Unknown Carrier";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,20 +96,24 @@ let recaptchaVerifier: RecaptchaVerifier | null = null;
 
 function getRecaptchaVerifier(authInstance: Auth): RecaptchaVerifier {
   if (!recaptchaVerifier) {
-    recaptchaVerifier = new RecaptchaVerifier(authInstance, 'recaptcha-container', {
-      size: 'invisible',
-      callback: (response: string) => {
-        console.log('reCAPTCHA solved:', response);
+    recaptchaVerifier = new RecaptchaVerifier(
+      authInstance,
+      "recaptcha-container",
+      {
+        size: "invisible",
+        callback: (response: string) => {
+          console.log("reCAPTCHA solved:", response);
+        },
+        "expired-callback": () => {
+          console.log("reCAPTCHA expired");
+          recaptchaVerifier = null;
+        },
+        "error-callback": (error: Error) => {
+          console.error("reCAPTCHA error:", error);
+          recaptchaVerifier = null;
+        },
       },
-      'expired-callback': () => {
-        console.log('reCAPTCHA expired');
-        recaptchaVerifier = null;
-      },
-      'error-callback': (error: Error) => {
-        console.error('reCAPTCHA error:', error);
-        recaptchaVerifier = null;
-      },
-    });
+    );
   }
   return recaptchaVerifier;
 }
@@ -137,60 +122,68 @@ function getRecaptchaVerifier(authInstance: Auth): RecaptchaVerifier {
 // Error Message Mapping for Indian Users
 // ─────────────────────────────────────────────────────────────────────────────
 function getAuthErrorMessage(errorCode: string): AuthError {
-  const errorMessages: Record<string, Omit<AuthError, 'code'>> = {
-    'auth/invalid-phone-number': {
-      message: 'The phone number format is invalid.',
-      userMessage: 'Invalid phone number format. Please enter a valid 10-digit Indian mobile number with +91 prefix.',
+  const errorMessages: Record<string, Omit<AuthError, "code">> = {
+    "auth/invalid-phone-number": {
+      message: "The phone number format is invalid.",
+      userMessage:
+        "Invalid phone number format. Please enter a valid 10-digit Indian mobile number with +91 prefix.",
     },
-    'auth/missing-phone-number': {
-      message: 'Phone number is required.',
-      userMessage: 'Please enter your phone number.',
+    "auth/missing-phone-number": {
+      message: "Phone number is required.",
+      userMessage: "Please enter your phone number.",
     },
-    'auth/quota-exceeded': {
-      message: 'SMS quota exceeded.',
-      userMessage: 'Too many OTP requests. Please try again after 30 seconds or use a different number.',
+    "auth/quota-exceeded": {
+      message: "SMS quota exceeded.",
+      userMessage:
+        "Too many OTP requests. Please try again after 30 seconds or use a different number.",
     },
-    'auth/too-many-requests': {
-      message: 'Too many attempts.',
-      userMessage: 'Too many attempts. Please try again after 15 minutes.',
+    "auth/too-many-requests": {
+      message: "Too many attempts.",
+      userMessage: "Too many attempts. Please try again after 15 minutes.",
     },
-    'auth/operation-not-allowed': {
-      message: 'Phone authentication is not enabled.',
-      userMessage: 'Phone authentication is currently unavailable. Please try again later.',
+    "auth/operation-not-allowed": {
+      message: "Phone authentication is not enabled.",
+      userMessage:
+        "Phone authentication is currently unavailable. Please try again later.",
     },
-    'auth/captcha-check-failed': {
-      message: 'reCAPTCHA verification failed.',
-      userMessage: 'Security verification failed. Please refresh the page and try again.',
+    "auth/captcha-check-failed": {
+      message: "reCAPTCHA verification failed.",
+      userMessage:
+        "Security verification failed. Please refresh the page and try again.",
     },
-    'auth/invalid-verification-code': {
-      message: 'Invalid OTP code.',
-      userMessage: 'Invalid OTP. Please check and enter the correct 6-digit code.',
+    "auth/invalid-verification-code": {
+      message: "Invalid OTP code.",
+      userMessage:
+        "Invalid OTP. Please check and enter the correct 6-digit code.",
     },
-    'auth/code-expired': {
-      message: 'OTP has expired.',
-      userMessage: 'OTP has expired. Please request a new one.',
+    "auth/code-expired": {
+      message: "OTP has expired.",
+      userMessage: "OTP has expired. Please request a new one.",
     },
-    'auth/network-request-failed': {
-      message: 'Network error.',
-      userMessage: 'Network error. Please check your internet connection and try again.',
+    "auth/network-request-failed": {
+      message: "Network error.",
+      userMessage:
+        "Network error. Please check your internet connection and try again.",
     },
-    'auth/requires-recent-login': {
-      message: 'Recent login required.',
-      userMessage: 'Please login again to continue.',
+    "auth/requires-recent-login": {
+      message: "Recent login required.",
+      userMessage: "Please login again to continue.",
     },
-    'auth/credential-already-in-use': {
-      message: 'Phone number already registered.',
-      userMessage: 'This phone number is already registered. Please login instead.',
+    "auth/credential-already-in-use": {
+      message: "Phone number already registered.",
+      userMessage:
+        "This phone number is already registered. Please login instead.",
     },
-    'auth/account-exists-with-different-credential': {
-      message: 'Account exists with different login method.',
-      userMessage: 'This phone number is linked to a different login method. Please use that instead.',
+    "auth/account-exists-with-different-credential": {
+      message: "Account exists with different login method.",
+      userMessage:
+        "This phone number is linked to a different login method. Please use that instead.",
     },
   };
 
   const errorInfo = errorMessages[errorCode] || {
-    message: 'Authentication failed.',
-    userMessage: 'Authentication failed. Please try again.',
+    message: "Authentication failed.",
+    userMessage: "Authentication failed. Please try again.",
   };
 
   return {
@@ -202,15 +195,18 @@ function getAuthErrorMessage(errorCode: string): AuthError {
 // ─────────────────────────────────────────────────────────────────────────────
 // Phone Number Validation for Indian Numbers
 // ─────────────────────────────────────────────────────────────────────────────
-function validateIndianPhoneNumber(phoneNumber: string): { valid: boolean; error?: string } {
+function validateIndianPhoneNumber(phoneNumber: string): {
+  valid: boolean;
+  error?: string;
+} {
   // Remove all non-digit characters except +
-  const cleaned = phoneNumber.replace(/[^\d+]/g, '');
+  const cleaned = phoneNumber.replace(/[^\d+]/g, "");
 
   // Check for +91 prefix
-  if (!cleaned.startsWith('+91')) {
+  if (!cleaned.startsWith("+91")) {
     return {
       valid: false,
-      error: 'Indian numbers must start with +91',
+      error: "Indian numbers must start with +91",
     };
   }
 
@@ -218,7 +214,7 @@ function validateIndianPhoneNumber(phoneNumber: string): { valid: boolean; error
   if (cleaned.length !== 13) {
     return {
       valid: false,
-      error: 'Phone number must be 10 digits after +91',
+      error: "Phone number must be 10 digits after +91",
     };
   }
 
@@ -227,7 +223,7 @@ function validateIndianPhoneNumber(phoneNumber: string): { valid: boolean; error
   if (!/^[6-9]\d{9}$/.test(numberPart)) {
     return {
       valid: false,
-      error: 'Invalid Indian mobile number. Must start with 6, 7, 8, or 9.',
+      error: "Invalid Indian mobile number. Must start with 6, 7, 8, or 9.",
     };
   }
 
@@ -259,9 +255,11 @@ export async function sendOTP(phoneNumber: string): Promise<OTPResult> {
       return {
         success: false,
         error: {
-          code: 'auth/invalid-phone-number',
-          message: validation.error || 'Invalid phone number',
-          userMessage: validation.error || 'Please enter a valid Indian phone number with +91 prefix.',
+          code: "auth/invalid-phone-number",
+          message: validation.error || "Invalid phone number",
+          userMessage:
+            validation.error ||
+            "Please enter a valid Indian phone number with +91 prefix.",
         },
       };
     }
@@ -269,10 +267,10 @@ export async function sendOTP(phoneNumber: string): Promise<OTPResult> {
     const authInstance = getFirebaseAuth();
 
     // Ensure reCAPTCHA container exists
-    if (!document.getElementById('recaptcha-container')) {
-      const container = document.createElement('div');
-      container.id = 'recaptcha-container';
-      container.className = 'sr-only';
+    if (!document.getElementById("recaptcha-container")) {
+      const container = document.createElement("div");
+      container.id = "recaptcha-container";
+      container.className = "sr-only";
       document.body.appendChild(container);
     }
 
@@ -283,12 +281,12 @@ export async function sendOTP(phoneNumber: string): Promise<OTPResult> {
     const confirmationResult = await signInWithPhoneNumber(
       authInstance,
       phoneNumber,
-      verifier
+      verifier,
     );
 
     // Detect carrier for user feedback
     const carrier = detectIndianCarrier(phoneNumber);
-    console.log(`OTP sent via ${carrier || 'SMS gateway'}`);
+    console.log(`OTP sent via ${carrier || "SMS gateway"}`);
 
     return {
       success: true,
@@ -296,9 +294,11 @@ export async function sendOTP(phoneNumber: string): Promise<OTPResult> {
     };
   } catch (error: unknown) {
     const firebaseError = error as { code?: string; message?: string };
-    const authError = getAuthErrorMessage(firebaseError.code || 'auth/unknown-error');
+    const authError = getAuthErrorMessage(
+      firebaseError.code || "auth/unknown-error",
+    );
 
-    console.error('Send OTP Error:', {
+    console.error("Send OTP Error:", {
       code: authError.code,
       message: authError.message,
       carrier: detectIndianCarrier(phoneNumber),
@@ -323,14 +323,14 @@ export async function sendOTP(phoneNumber: string): Promise<OTPResult> {
  */
 export async function verifyOTP(
   confirmationResult: ConfirmationResult,
-  otp: string
+  otp: string,
 ): Promise<UserCredential> {
   try {
     // Validate OTP format
     if (!/^\d{6}$/.test(otp)) {
       throw {
-        code: 'auth/invalid-verification-code',
-        message: 'OTP must be 6 digits',
+        code: "auth/invalid-verification-code",
+        message: "OTP must be 6 digits",
       };
     }
 
@@ -338,20 +338,25 @@ export async function verifyOTP(
 
     // Store auth token in localStorage for persistence
     const idToken = await result.user.getIdToken();
-    localStorage.setItem('auth_token', idToken);
-    localStorage.setItem('user', JSON.stringify({
-      uid: result.user.uid,
-      phoneNumber: result.user.phoneNumber,
-      email: result.user.email,
-      displayName: result.user.displayName,
-    }));
+    localStorage.setItem("auth_token", idToken);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        uid: result.user.uid,
+        phoneNumber: result.user.phoneNumber,
+        email: result.user.email,
+        displayName: result.user.displayName,
+      }),
+    );
 
     return result;
   } catch (error: unknown) {
     const firebaseError = error as { code?: string; message?: string };
-    const authError = getAuthErrorMessage(firebaseError.code || 'auth/unknown-error');
+    const authError = getAuthErrorMessage(
+      firebaseError.code || "auth/unknown-error",
+    );
 
-    console.error('Verify OTP Error:', authError);
+    console.error("Verify OTP Error:", authError);
 
     throw authError;
   }
@@ -373,53 +378,59 @@ export async function signInWithGoogle(): Promise<UserCredential> {
     // Customize Google sign-in for Indian users
     provider.setCustomParameters({
       // Prompt for consent each time for security
-      prompt: 'select_account',
+      prompt: "select_account",
       // Hindi locale option (can be extended)
-      hl: 'en',
+      hl: "en",
     });
 
     // Add scopes if needed
-    provider.addScope('email');
-    provider.addScope('profile');
+    provider.addScope("email");
+    provider.addScope("profile");
 
     const result = await signInWithPopup(authInstance, provider);
 
     // Store auth token
     const idToken = await result.user.getIdToken();
-    localStorage.setItem('auth_token', idToken);
-    localStorage.setItem('user', JSON.stringify({
-      uid: result.user.uid,
-      email: result.user.email,
-      displayName: result.user.displayName,
-      photoURL: result.user.photoURL,
-      provider: 'google',
-    }));
+    localStorage.setItem("auth_token", idToken);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        provider: "google",
+      }),
+    );
 
     return result;
   } catch (error: unknown) {
     const firebaseError = error as { code?: string; message?: string };
 
     // Handle common Google sign-in errors
-    if (firebaseError.code === 'auth/popup-closed-by-user') {
+    if (firebaseError.code === "auth/popup-closed-by-user") {
       throw {
-        code: 'auth/popup-closed-by-user',
-        message: 'Sign-in popup was closed.',
-        userMessage: 'Sign-in was cancelled. Please try again.',
+        code: "auth/popup-closed-by-user",
+        message: "Sign-in popup was closed.",
+        userMessage: "Sign-in was cancelled. Please try again.",
       };
     }
 
-    if (firebaseError.code === 'auth/account-exists-with-different-credential') {
+    if (
+      firebaseError.code === "auth/account-exists-with-different-credential"
+    ) {
       throw {
-        code: 'auth/account-exists-with-different-credential',
-        message: 'Account exists with different login method.',
-        userMessage: 'This email is already registered with a different login method. Please use phone OTP instead.',
+        code: "auth/account-exists-with-different-credential",
+        message: "Account exists with different login method.",
+        userMessage:
+          "This email is already registered with a different login method. Please use phone OTP instead.",
       };
     }
 
     throw {
-      code: firebaseError.code || 'auth/unknown-error',
-      message: firebaseError.message || 'Google sign-in failed.',
-      userMessage: 'Google sign-in failed. Please try again or use phone OTP.',
+      code: firebaseError.code || "auth/unknown-error",
+      message: firebaseError.message || "Google sign-in failed.",
+      userMessage: "Google sign-in failed. Please try again or use phone OTP.",
     };
   }
 }
@@ -438,17 +449,17 @@ export async function signOut(): Promise<void> {
     await firebaseSignOut(authInstance);
 
     // Clear local storage
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('pending_phone');
-    localStorage.removeItem('confirmation_result');
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("pending_phone");
+    localStorage.removeItem("confirmation_result");
 
-    console.log('User signed out successfully');
+    console.log("User signed out successfully");
   } catch (error) {
-    console.error('Sign out error:', error);
+    console.error("Sign out error:", error);
     // Still clear local storage even if Firebase sign out fails
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
     throw error;
   }
 }
@@ -484,7 +495,7 @@ export async function getIdToken(forceRefresh = false): Promise<string | null> {
   try {
     return await user.getIdToken(forceRefresh);
   } catch (error) {
-    console.error('Get ID token error:', error);
+    console.error("Get ID token error:", error);
     return null;
   }
 }
@@ -506,7 +517,7 @@ export async function getIdToken(forceRefresh = false): Promise<string | null> {
  * // Later, call unsubscribe() to stop listening
  */
 export function onAuthStateChange(
-  callback: (user: User | null) => void
+  callback: (user: User | null) => void,
 ): () => void {
   const authInstance = getFirebaseAuth();
   return onAuthStateChanged(authInstance, callback);
@@ -537,7 +548,7 @@ export function isAuthenticated(): boolean {
  */
 export async function resendOTP(
   phoneNumber: string,
-  lastSentTime: number
+  lastSentTime: number,
 ): Promise<OTPResult> {
   const cooldownPeriod = 30000; // 30 seconds
   const timeElapsed = Date.now() - lastSentTime;
@@ -547,7 +558,7 @@ export async function resendOTP(
     return {
       success: false,
       error: {
-        code: 'auth/cooldown-active',
+        code: "auth/cooldown-active",
         message: `Please wait ${remainingTime} seconds before resending OTP.`,
         userMessage: `Please wait ${remainingTime} seconds before requesting a new OTP.`,
       },

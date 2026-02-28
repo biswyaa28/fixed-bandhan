@@ -10,10 +10,10 @@
  * - Link to disable demo mode
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   X,
@@ -23,11 +23,11 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
-} from 'lucide-react';
-import { useDemoMode } from '@/hooks/useDemoMode';
-import { getDemoOTP, getDemoCredentials } from '@/hooks/useDemoMode';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+} from "lucide-react";
+import { useDemoMode } from "@/hooks/useDemoMode";
+import { getDemoOTP, getDemoCredentials } from "@/hooks/useDemoMode";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return twMerge(clsx(classes));
@@ -37,8 +37,15 @@ function cn(...classes: (string | undefined | null | false)[]) {
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 export function DemoBanner() {
-  const { isActive, disable, showBanner, hideBanner, availableUsers, selectUser, currentUser } =
-    useDemoMode();
+  const {
+    isActive,
+    disable,
+    showBanner,
+    hideBanner,
+    availableUsers,
+    selectUser,
+    currentUser,
+  } = useDemoMode();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const credentials = getDemoCredentials();
@@ -56,34 +63,28 @@ export function DemoBanner() {
         className="fixed top-0 left-0 right-0 z-[100] safe-top"
       >
         {/* Main Banner */}
-        <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="bg-lavender-50 border-b border-lavender-200 text-lavender-900 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2.5">
             <div className="flex items-center justify-between">
               {/* Left: Demo Mode Indicator */}
               <div className="flex items-center space-x-3">
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <AlertTriangle className="w-5 h-5 text-yellow-300" />
-                </motion.div>
+                <AlertTriangle className="w-4 h-4 text-lavender-500 shrink-0" />
                 <div>
-                  <p className="font-bold text-sm">
-                    🎭 DEMO MODE
+                  <p className="font-semibold text-sm text-lavender-900">
+                    Demo Mode
                   </p>
-                  <p className="text-xs text-red-100">
-                    Using mock data - No real authentication
+                  <p className="text-xs text-lavender-600">
+                    Using mock data — no real authentication
                   </p>
                 </div>
               </div>
 
               {/* Right: Actions */}
               <div className="flex items-center space-x-2">
-                {/* Expand Button */}
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                  title={isExpanded ? 'Collapse' : 'Expand demo info'}
+                  className="p-1.5 rounded-lg hover:bg-lavender-100 transition-colors text-lavender-600"
+                  title={isExpanded ? "Collapse" : "Expand demo info"}
                 >
                   {isExpanded ? (
                     <ChevronUp className="w-4 h-4" />
@@ -92,19 +93,17 @@ export function DemoBanner() {
                   )}
                 </button>
 
-                {/* Hide Button */}
                 <button
                   onClick={hideBanner}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                  title="Hide banner (can restore in settings)"
+                  className="p-1.5 rounded-lg hover:bg-lavender-100 transition-colors text-lavender-600"
+                  title="Hide banner"
                 >
                   <X className="w-4 h-4" />
                 </button>
 
-                {/* Disable Button */}
                 <button
                   onClick={disable}
-                  className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors text-xs font-medium"
+                  className="px-3 py-1.5 rounded-lg bg-lavender-200 hover:bg-lavender-300 transition-colors text-xs font-semibold text-lavender-800"
                 >
                   Exit Demo
                 </button>
@@ -116,76 +115,74 @@ export function DemoBanner() {
               {isExpanded && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="pt-4 mt-4 border-t border-white/20">
+                  <div className="pt-3 mt-3 border-t border-lavender-200">
                     {/* Demo Credentials */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                       {/* OTP Info */}
-                      <div className="bg-white/10 rounded-lg p-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Key className="w-4 h-4 text-yellow-300" />
-                          <span className="text-sm font-semibold">Demo OTP</span>
+                      <div className="bg-lavender-50 border border-lavender-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Key className="w-3.5 h-3.5 text-lavender-500" />
+                          <span className="text-xs font-semibold text-lavender-800">
+                            Demo OTP
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <code className="text-2xl font-mono bg-white/20 px-3 py-1 rounded">
-                            {credentials.otp}
-                          </code>
-                        </div>
-                        <p className="text-xs text-red-100 mt-2">
+                        <code className="text-2xl font-mono text-lavender-900 font-bold tracking-widest">
+                          {credentials.otp}
+                        </code>
+                        <p className="text-xs text-lavender-500 mt-1">
                           Use this OTP for any phone number
                         </p>
                       </div>
 
                       {/* Phone Info */}
-                      <div className="bg-white/10 rounded-lg p-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Smartphone className="w-4 h-4 text-yellow-300" />
-                          <span className="text-sm font-semibold">Phone Number</span>
+                      <div className="bg-peach-50 border border-peach-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Smartphone className="w-3.5 h-3.5 text-peach-500" />
+                          <span className="text-xs font-semibold text-peach-800">
+                            Phone Number
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <code className="text-sm font-mono bg-white/20 px-3 py-1 rounded">
-                            {credentials.phone}
-                          </code>
-                        </div>
-                        <p className="text-xs text-red-100 mt-2">
+                        <code className="text-sm font-mono text-peach-900 font-bold">
+                          {credentials.phone}
+                        </code>
+                        <p className="text-xs text-peach-500 mt-1">
                           {credentials.note}
                         </p>
                       </div>
                     </div>
 
                     {/* Demo Users */}
-                    <div className="bg-white/10 rounded-lg p-3 mb-4">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Users className="w-4 h-4 text-yellow-300" />
-                        <span className="text-sm font-semibold">Demo Profiles</span>
-                        <span className="text-xs text-red-100">
+                    <div className="bg-ink-50 border border-ink-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-3.5 h-3.5 text-ink-400" />
+                        <span className="text-xs font-semibold text-ink-700">
+                          Demo Profiles
+                        </span>
+                        <span className="text-xs text-ink-400">
                           ({availableUsers.length} available)
                         </span>
                       </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
                         {availableUsers.map((demoUser) => (
                           <button
                             key={demoUser.id}
                             onClick={() => selectUser(demoUser.id)}
                             className={cn(
-                              'p-2 rounded-lg text-left transition-colors',
+                              "p-2 rounded-lg text-left transition-colors border text-xs",
                               currentUser?.id === demoUser.id
-                                ? 'bg-yellow-500/30 border border-yellow-400'
-                                : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                                ? "bg-lavender-100 border-lavender-300 text-lavender-900"
+                                : "bg-white border-ink-200 text-ink-600 hover:border-ink-300",
                             )}
                           >
-                            <p className="text-sm font-medium truncate">
+                            <p className="font-semibold truncate">
                               {demoUser.name}
                             </p>
-                            <p className="text-xs text-red-100 truncate">
-                              {demoUser.age} • {demoUser.city}
-                            </p>
-                            <p className="text-xs text-red-200 truncate">
-                              {demoUser.intent.replace('-', ' ')}
+                            <p className="text-ink-400 truncate">
+                              {demoUser.age} · {demoUser.city}
                             </p>
                           </button>
                         ))}
@@ -193,16 +190,14 @@ export function DemoBanner() {
                     </div>
 
                     {/* Info Note */}
-                    <div className="flex items-start space-x-2 p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
-                      <Info className="w-4 h-4 text-blue-300 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-blue-100">
-                        <p className="font-semibold mb-1">Demo Mode Features:</p>
-                        <ul className="space-y-1">
+                    <div className="flex items-start gap-2 p-3 bg-sky-50 border border-sky-200 rounded-lg">
+                      <Info className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
+                      <div className="text-xs text-sky-700">
+                        <p className="font-semibold mb-1">Demo Mode</p>
+                        <ul className="space-y-0.5 text-sky-600">
                           <li>• No real phone numbers or OTPs required</li>
-                          <li>• Pre-created demo profiles for testing</li>
                           <li>• All features unlocked for testing</li>
                           <li>• Data resets when you exit demo mode</li>
-                          <li>• Perfect for presentations and testing</li>
                         </ul>
                       </div>
                     </div>
@@ -213,47 +208,42 @@ export function DemoBanner() {
           </div>
         </div>
 
-        {/* Bottom Gradient Fade */}
-        <div className="h-4 bg-gradient-to-b from-red-500/50 to-transparent" />
+        {/* Subtle bottom divider */}
+        <div className="h-px bg-lavender-200" />
       </motion.div>
     </AnimatePresence>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Compact Version (for mobile)
-// ─────────────────────────────────────────────────────────────────────────────
 export function DemoBannerCompact() {
   const { isActive, disable, showBanner, hideBanner } = useDemoMode();
 
-  if (!isActive || !showBanner) {
-    return null;
-  }
+  if (!isActive || !showBanner) return null;
 
   return (
     <motion.div
-      initial={{ y: -100, opacity: 0 }}
+      initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: -100, opacity: 0 }}
+      exit={{ y: -60, opacity: 0 }}
       className="fixed top-0 left-0 right-0 z-[100] safe-top"
     >
-      <div className="bg-red-600 text-white shadow-lg">
+      <div className="bg-lavender-100 border-b border-lavender-200 text-lavender-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="w-4 h-4 text-yellow-300" />
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-lavender-500" />
               <span className="font-bold text-xs">DEMO MODE</span>
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center gap-1">
               <button
                 onClick={hideBanner}
-                className="p-1 rounded hover:bg-white/10"
+                className="p-1 rounded hover:bg-lavender-200 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
               <button
                 onClick={disable}
-                className="px-2 py-1 rounded bg-white/20 text-xs"
+                className="px-2 py-1 rounded bg-lavender-200 text-xs font-medium hover:bg-lavender-300 transition-colors"
               >
                 Exit
               </button>

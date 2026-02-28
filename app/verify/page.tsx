@@ -518,10 +518,10 @@ function CompletionScreen({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 * index }}
-              className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 border border-white/10"
+              className="flex items-center space-x-3 p-3 rounded-xl bg-ink-50 border border-ink-100"
             >
-              <item.icon className="w-5 h-5 text-gold-400 flex-shrink-0" />
-              <span className="text-sm text-gray-200">{item.text}</span>
+              <item.icon className="w-5 h-5 text-gold-500 flex-shrink-0" />
+              <span className="text-sm text-ink-700">{item.text}</span>
             </motion.div>
           ))}
         </div>
@@ -534,7 +534,7 @@ function CompletionScreen({
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onContinue}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-saffron-500 to-rose-500 text-white font-semibold"
+        className="w-full py-3 rounded-xl bg-ink-900 text-white font-semibold text-sm hover:bg-ink-700 transition-colors"
       >
         {t.startExploring}
       </motion.button>
@@ -576,35 +576,29 @@ export default function VerifyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero px-4 py-8 safe-top safe-bottom">
-      {/* Background Decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-saffron-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-violet-500/5 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen bg-ink-50 px-4 py-8 safe-top safe-bottom">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-6"
+        className="relative z-10 mb-6 pt-10"
       >
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-xl glass-sm hover:bg-white/10 transition-colors"
+            className="p-2 rounded-xl border border-ink-200 bg-white text-ink-500 hover:text-ink-700 hover:border-ink-300 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-400" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
 
           <div className="text-center">
-            <h1 className="text-lg font-bold text-white">{t.title}</h1>
-            <p className="text-xs text-gray-400">{t.subtitle}</p>
+            <h1 className="text-base font-bold text-ink-900">{t.title}</h1>
+            <p className="text-xs text-ink-400">{t.subtitle}</p>
           </div>
 
           <button
             onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-            className="px-3 py-1.5 rounded-xl glass-sm text-xs text-gray-400 hover:text-white transition-colors"
+            className="px-3 py-1.5 rounded-xl border border-ink-200 bg-white text-xs text-ink-500 hover:text-ink-700 transition-colors"
           >
             {language === "en" ? "हिंदी" : "English"}
           </button>
@@ -619,7 +613,7 @@ export default function VerifyPage() {
         exit={{ opacity: 0, x: -20 }}
         className="relative z-10 max-w-md mx-auto"
       >
-        <div className="glass-md rounded-3xl p-6 border border-white/10">
+        <div className="bg-white rounded-2xl p-6 border border-ink-100 shadow-sm">
           <AnimatePresence mode="wait">
             {currentStep === "intro" && (
               <motion.div
@@ -639,18 +633,18 @@ export default function VerifyPage() {
                   }}
                 />
 
-                <div className="pt-4 border-t border-white/10">
+                <div className="pt-4 border-t border-ink-100">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setCurrentStep("phone")}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-saffron-500 to-rose-500 text-white font-semibold"
+                    className="w-full py-3 rounded-xl bg-ink-900 text-white font-semibold text-sm hover:bg-ink-700 transition-colors"
                   >
                     {t.continue}
                   </motion.button>
                   <button
                     onClick={() => router.back()}
-                    className="w-full py-3 mt-3 text-sm text-gray-400 hover:text-white transition-colors"
+                    className="w-full py-3 mt-2 text-sm text-ink-400 hover:text-ink-600 transition-colors"
                   >
                     {t.skip}
                   </button>
@@ -692,14 +686,13 @@ export default function VerifyPage() {
           </AnimatePresence>
         </div>
 
-        {/* Back Button (not on intro/complete) */}
         {["phone", "digilocker", "video"].includes(currentStep) && (
           <button
             onClick={() => setCurrentStep("intro")}
-            className="w-full py-3 mt-4 text-sm text-gray-400 hover:text-white transition-colors flex items-center justify-center space-x-2"
+            className="w-full py-3 mt-4 text-sm text-ink-400 hover:text-ink-700 transition-colors flex items-center justify-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{t.back}</span>
+            {t.back}
           </button>
         )}
       </motion.main>

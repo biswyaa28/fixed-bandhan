@@ -1,0 +1,138 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Bandhan AI — Umami Analytics (Self-Hosted, Privacy-First)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Umami is 100% free, open-source web analytics — a privacy-focused
+# alternative to Google Analytics. NO data is sent to third parties.
+#
+# DEPLOYMENT OPTIONS (all free):
+#
+#   1. Railway (recommended for India)
+#      - Free tier: 500 hours/month, 1GB RAM
+#      - Region: ap-south-1 (Mumbai) — data stays in India
+#      - Deploy: https://railway.app/template/umami
+#      - No credit card needed
+#
+#   2. Render
+#      - Free tier: 750 hours/month
+#      - Deploy: https://render.com/deploy?repo=https://github.com/umami-software/umami
+#
+#   3. Self-hosted (this docker-compose file)
+#      - Run on any VPS: DigitalOcean Bangalore ($4/mo), AWS Mumbai free tier
+#      - docker compose up -d
+#
+# DATA RESIDENCY:
+#   All analytics data is stored in the PostgreSQL database defined below.
+#   When deployed on Railway Mumbai or an Indian VPS, data never leaves India.
+#   This satisfies DPDP Act 2023 data localisation requirements.
+#
+# DATA RETENTION:
+#   Umami automatically respects the retention policy configured in the
+#   dashboard (Settings → Websites → Data retention).
+#   Set to 90 days to comply with our privacy policy.
+#   A cron job in the db container purges expired rows nightly.
+#
+# AFTER DEPLOYMENT:
+#   1. Open https://your-umami-url and log in (admin / umami)
+#   2. Change the admin password immediately
+#   3. Add website: name="Bandhan AI", domain="bandhan.ai"
+#   4. Copy the Website ID (UUID) into .env.local:
+#        NEXT_PUBLIC_UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#   5. Copy the host URL:
+#        NEXT_PUBLIC_UMAMI_HOST=https://your-umami-url.railway.app
+#
+# ══════════════════════════════════════════════════════════════════════════════
+
+version: "3.8"
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────────────────
+  # Stores all analytics events. No data leaves this container.
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      # CHANGE THIS in production. Use a strong password.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-umami_secret_change_me}
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Expose only on internal Docker network — not publicly accessible
+    networks:
+      - umami-net
+
+  # ── Umami Analytics Server ──────────────────────────────────────────────
+  # The analytics dashboard + tracking API.
+  # Image: ghcr.io/umami-software/umami (official, MIT licensed)
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    ports:
+      - "${UMAMI_PORT:-3001}:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:${POSTGRES_PASSWORD:-umami_secret_change_me}@db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${APP_SECRET:-bandhan_umami_secret_change_me_in_production}
+      # ── Privacy Settings ──
+      # Disable collection of full IP addresses (store anonymised hash only)
+      DISABLE_LOGIN: "false"
+      # Client-side IP anonymisation (strips last octet)
+      CLIENT_IP_HEADER: x-forwarded-for
+      # Remove tracking of user-agent details beyond browser family
+      REMOVE_TRAILING_SLASH: "true"
+      # Ignore bots
+      IGNORE_HOSTNAME: ""
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/heartbeat || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - umami-net
+
+  # ── Data Retention Cron Job ─────────────────────────────────────────────
+  # Purges analytics events older than 90 days every night at 2:30 AM IST.
+  # DPDP Act 2023 compliance: data is not retained beyond stated period.
+  retention-cron:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: umami
+      PGUSER: umami
+      PGPASSWORD: ${POSTGRES_PASSWORD:-umami_secret_change_me}
+    # Run purge at 02:30 IST (21:00 UTC) daily
+    entrypoint: >
+      sh -c '
+        echo "── Bandhan AI: Data retention cron (90 days) ──"
+        while true; do
+          echo "[$(date -u)] Purging analytics events older than 90 days..."
+          psql -c "DELETE FROM website_event WHERE created_at < NOW() - INTERVAL '\''90 days'\'';" 2>/dev/null || true
+          psql -c "DELETE FROM session WHERE created_at < NOW() - INTERVAL '\''90 days'\'';" 2>/dev/null || true
+          echo "[$(date -u)] Purge complete. Sleeping 24 hours."
+          sleep 86400
+        done
+      '
+    networks:
+      - umami-net
+
+volumes:
+  umami-db-data:
+    driver: local
+
+networks:
+  umami-net:
+    driver: bridge

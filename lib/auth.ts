@@ -1,64 +1,46 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+/**
+ * Bandhan AI — Auth helpers (OTP, sign-out, token)
+ *
+ * Firebase App + Auth initialisation is handled by lib/firebase/config.ts.
+ * This file only contains thin wrappers around firebase/auth methods.
+ */
+
 import {
-  getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signOut as firebaseSignOut,
   type ConfirmationResult,
   type Auth,
 } from "firebase/auth";
-import { getAnalytics, isSupported } from "firebase/analytics";
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
+// ── Central singleton — no duplicate initializeApp ──────────────────────────
+import {
+  firebaseAuth,
+  firebaseAnalytics,
+  type Analytics,
+} from "@/lib/firebase/config";
 
-// Initialize Firebase (singleton pattern) with error handling
-let app: any = null;
+// Expose the shared auth instance for other modules.
 let auth: Auth | null = null;
-
-function initFirebase() {
-  try {
-    if (!getApps().length) {
-      // Check if API key is configured
-      if (
-        !firebaseConfig.apiKey ||
-        firebaseConfig.apiKey === "your_api_key_here"
-      ) {
-        console.warn(
-          "⚠️ Firebase not configured: Using mock auth. Set NEXT_PUBLIC_FIREBASE_API_KEY to use real auth.",
-        );
-        return null;
-      }
-      return initializeApp(firebaseConfig);
-    }
-    return getApp();
-  } catch (error) {
-    console.warn("⚠️ Firebase initialization failed:", error);
-    return null;
-  }
-}
-
 try {
-  app = initFirebase();
-  if (app) {
-    auth = getAuth(app);
+  if (typeof window !== "undefined") {
+    auth = firebaseAuth();
   }
-} catch (error) {
-  console.warn("⚠️ Firebase Auth not available:", error);
+} catch {
+  // Firebase not configured — mock layer will handle auth instead.
+  console.warn("⚠️ Firebase Auth not available — using mock auth.");
 }
 
-// Initialize Analytics (client-side only)
-export const analytics =
-  typeof window !== "undefined" && isSupported() && app
-    ? getAnalytics(app)
-    : null;
+// Initialize Analytics (client-side, non-blocking).
+let analytics: Analytics | null = null;
+if (typeof window !== "undefined") {
+  firebaseAnalytics()
+    .then((a) => {
+      analytics = a;
+    })
+    .catch(() => {});
+}
+export { analytics };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OTP Functions
@@ -164,12 +146,16 @@ function getAuthErrorMessage(errorCode: string): string {
  */
 export async function signOut() {
   try {
-    const { signOut: firebaseSignOut } = await import("firebase/auth");
-    await firebaseSignOut(auth);
+    if (auth) {
+      await firebaseSignOut(auth);
+    }
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
   } catch (error) {
     console.error("Error signing out:", error);
+    // Still clear storage even on error
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
     throw error;
   }
 }
@@ -178,7 +164,7 @@ export async function signOut() {
  * Get current user
  */
 export function getCurrentUser() {
-  return auth.currentUser;
+  return auth?.currentUser ?? null;
 }
 
 /**

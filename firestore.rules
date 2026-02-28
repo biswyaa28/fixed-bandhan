@@ -1,0 +1,412 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bandhan AI — Firestore Security Rules
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// DEPLOYMENT:
+//   firebase deploy --only firestore:rules
+//
+// TESTING:
+//   firebase emulators:start
+//   Then run the Firestore rules unit tests.
+//
+// PRINCIPLES:
+//   1. Deny-by-default — only explicitly allowed reads/writes succeed.
+//   2. Users can only read/write their OWN data (with scoped exceptions).
+//   3. All writes are validated (required fields, types, ranges).
+//   4. Admin operations use firebase-admin SDK (bypasses rules).
+//   5. No client can delete collections or escalate their own privileges.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // True if the caller is signed in.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // True if the caller's UID matches the given uid string.
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // True if the caller is one of the two users in a pair.
+    function isParticipant(id1, id2) {
+      return isAuthenticated()
+        && (request.auth.uid == id1 || request.auth.uid == id2);
+    }
+
+    // True if the caller's UID appears in an array field.
+    function isInArray(arr) {
+      return isAuthenticated() && request.auth.uid in arr;
+    }
+
+    // True if a string field is non-empty and within maxLen.
+    function isNonEmptyString(field, maxLen) {
+      return field is string && field.size() > 0 && field.size() <= maxLen;
+    }
+
+    // True if a number is in the given inclusive range.
+    function isInRange(val, lo, hi) {
+      return val is number && val >= lo && val <= hi;
+    }
+
+    // The incoming document data.
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // The existing document data (for updates).
+    function existing() {
+      return resource.data;
+    }
+
+    // Timestamp that is approximately "now" (within 5 min tolerance).
+    function isRecentTimestamp(ts) {
+      return ts is timestamp
+        && ts >= request.time - duration.value(5, 'm')
+        && ts <= request.time + duration.value(5, 'm');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 1. USERS  —  /users/{uid}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Anyone authenticated can READ any user profile (discovery feed).
+    // • Only the profile owner can WRITE their own document.
+    // • Certain fields are immutable after creation (uid, phone, createdAt).
+    // • Privileged fields (isPremium, reportCount, isDeactivated) can ONLY
+    //   be set by the Admin SDK (which bypasses these rules).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /users/{uid} {
+
+      allow read: if isAuthenticated();
+
+      // CREATE — first-time profile (called by ensureUserProfile in auth.ts)
+      allow create: if isOwner(uid)
+        // Required fields
+        && incoming().uid == uid
+        && isNonEmptyString(incoming().phone, 15)
+        // Initial safe defaults (no self-escalation)
+        && incoming().isVerified == false
+        && incoming().isPremium == false
+        && incoming().verificationLevel == 'bronze'
+        && incoming().reportCount == 0
+        && incoming().isDeactivated == false;
+
+      // UPDATE — profile edits by owner
+      allow update: if isOwner(uid)
+        // Immutable fields — cannot be changed after creation
+        && incoming().uid == existing().uid
+        && incoming().phone == existing().phone
+        && incoming().createdAt == existing().createdAt
+        // Privileged fields — cannot be self-escalated
+        // (Admin SDK writes bypass rules, so admins can still change these)
+        && incoming().isPremium == existing().isPremium
+        && incoming().reportCount == existing().reportCount
+        && incoming().isDeactivated == existing().isDeactivated
+        // Verification can only go UP, never down (bronze → silver → gold)
+        && (incoming().verificationLevel == existing().verificationLevel
+            || (existing().verificationLevel == 'bronze' && incoming().verificationLevel in ['silver', 'gold'])
+            || (existing().verificationLevel == 'silver' && incoming().verificationLevel == 'gold'))
+        // Basic validation
+        && (incoming().name == null || incoming().name is string)
+        && (incoming().age == null || isInRange(incoming().age, 18, 100))
+        && (incoming().bio == null || (incoming().bio is string && incoming().bio.size() <= 1000))
+        && (incoming().city == null || incoming().city is string)
+        && (incoming().blockedUserIds is list && incoming().blockedUserIds.size() <= 500);
+
+      // DELETE — not allowed from client. Use isDeactivated flag instead.
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 2. MATCHES  —  /matches/{matchId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Only participants can read their own matches.
+    // • Creation is handled by Cloud Functions when mutual interest is
+    //   detected (not by client), but we allow it for demo seeding.
+    // • Participants can update (unread counts, status → "unmatched").
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /matches/{matchId} {
+
+      allow read: if isAuthenticated()
+        && isParticipant(resource.data.user1Id, resource.data.user2Id);
+
+      allow create: if isAuthenticated()
+        && isParticipant(incoming().user1Id, incoming().user2Id)
+        && incoming().status == 'active'
+        && incoming().user1Id is string
+        && incoming().user2Id is string
+        && incoming().user1Id != incoming().user2Id;
+
+      allow update: if isAuthenticated()
+        && isParticipant(existing().user1Id, existing().user2Id)
+        // Cannot change the participant pair
+        && incoming().user1Id == existing().user1Id
+        && incoming().user2Id == existing().user2Id
+        && incoming().userIds == existing().userIds
+        && incoming().matchedAt == existing().matchedAt
+        // Status transitions: active → unmatched | blocked only
+        && (incoming().status == existing().status
+            || (existing().status == 'active'
+                && incoming().status in ['unmatched', 'blocked']));
+
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 3. MESSAGES  —  /messages/{messageId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Sender or recipient (via match) can read.
+    // • Only the sender can create.
+    // • Recipient can update (readAt, status → "read").
+    // • Sender can soft-delete (isDeleted = true).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /messages/{messageId} {
+
+      // Read: must be the sender, or a participant in the match.
+      // For simplicity we allow any auth user to read messages where they
+      // are the sender. Match-level reads are guarded by the match rule.
+      allow read: if isAuthenticated()
+        && (resource.data.senderId == request.auth.uid
+            || matchParticipant(resource.data.matchId));
+
+      // Create: must be the sender, content non-empty
+      allow create: if isAuthenticated()
+        && incoming().senderId == request.auth.uid
+        && isNonEmptyString(incoming().matchId, 128)
+        && incoming().type in ['text', 'voice', 'image', 'icebreaker']
+        && (incoming().type != 'text' || isNonEmptyString(incoming().content, 5000))
+        && incoming().isDeleted == false;
+
+      // Update: recipient can mark as read, sender can soft-delete
+      allow update: if isAuthenticated()
+        && (
+          // Recipient marks as read
+          (incoming().status == 'read'
+           && incoming().senderId == existing().senderId
+           && incoming().content == existing().content
+           && incoming().matchId == existing().matchId)
+          ||
+          // Sender soft-deletes
+          (request.auth.uid == existing().senderId
+           && incoming().isDeleted == true
+           && incoming().senderId == existing().senderId
+           && incoming().matchId == existing().matchId)
+        );
+
+      allow delete: if false;
+
+      // Helper — check if caller is a participant of the given match.
+      // NOTE: This performs a get() which counts as a read. Max 10 per rule.
+      function matchParticipant(matchId) {
+        let m = get(/databases/$(database)/documents/matches/$(matchId)).data;
+        return request.auth.uid == m.user1Id || request.auth.uid == m.user2Id;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 4. INTERESTS  —  /interests/{interestId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Sender can create (like/special/premium interest).
+    // • Recipient can read interests sent TO them.
+    // • Sender can read interests sent BY them.
+    // • No client-side updates (Cloud Functions handle isMutual).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /interests/{interestId} {
+
+      allow read: if isAuthenticated()
+        && (resource.data.fromUserId == request.auth.uid
+            || resource.data.toUserId == request.auth.uid);
+
+      allow create: if isAuthenticated()
+        && incoming().fromUserId == request.auth.uid
+        && incoming().fromUserId != incoming().toUserId
+        && isNonEmptyString(incoming().toUserId, 128)
+        && incoming().type in ['like', 'special', 'premium']
+        && incoming().isMutual == false
+        && (incoming().comment == null
+            || (incoming().comment is string && incoming().comment.size() <= 200));
+
+      // Only Cloud Functions may update (set isMutual, isSeen).
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 5. PROFILE VISITS  —  /profileVisits/{visitId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Visitor can create.
+    // • Visited user can read visits TO their profile.
+    // • Visitor can read their OWN visits.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /profileVisits/{visitId} {
+
+      allow read: if isAuthenticated()
+        && (resource.data.visitorId == request.auth.uid
+            || resource.data.visitedUserId == request.auth.uid);
+
+      allow create: if isAuthenticated()
+        && incoming().visitorId == request.auth.uid
+        && incoming().visitorId != incoming().visitedUserId
+        && isNonEmptyString(incoming().visitedUserId, 128);
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 6. NOTIFICATIONS  —  /notifications/{notificationId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Users can read ONLY their own notifications.
+    // • Users can update their own (mark as read).
+    // • Creation is server-only (Cloud Functions).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /notifications/{notificationId} {
+
+      allow read: if isOwner(resource.data.userId);
+
+      // Users can mark their own notifications as read
+      allow update: if isOwner(existing().userId)
+        && incoming().userId == existing().userId
+        && incoming().type == existing().type
+        && incoming().createdAt == existing().createdAt
+        && incoming().isRead == true;
+
+      // Only Cloud Functions create notifications
+      allow create: if false;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 7. SUCCESS STORIES  —  /successStories/{storyId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Anyone authenticated can read APPROVED stories.
+    // • Participants can submit (create) their own story.
+    // • Only admin (Cloud Functions) can approve/feature.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /successStories/{storyId} {
+
+      // Public read — only approved stories
+      allow read: if isAuthenticated()
+        && resource.data.isApproved == true;
+
+      // Participants can submit
+      allow create: if isAuthenticated()
+        && (incoming().userId1 == request.auth.uid
+            || incoming().userId2 == request.auth.uid)
+        && isNonEmptyString(incoming().quoteEn, 1000)
+        && incoming().isApproved == false
+        && incoming().isFeatured == false;
+
+      // Only admin SDK can approve
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 8. REPORTS  —  /reports/{reportId}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // • Reporter can create a report.
+    // • Reporter can read their OWN reports.
+    // • Moderation (status changes) is admin-only via Cloud Functions.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /reports/{reportId} {
+
+      allow read: if isAuthenticated()
+        && resource.data.reporterId == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && incoming().reporterId == request.auth.uid
+        && incoming().reporterId != incoming().reportedUserId
+        && isNonEmptyString(incoming().reportedUserId, 128)
+        && incoming().reason in [
+            'fake-profile', 'harassment', 'spam',
+            'inappropriate-content', 'underage', 'scam', 'other'
+           ]
+        && incoming().status == 'pending'
+        && (incoming().comment == null
+            || (incoming().comment is string && incoming().comment.size() <= 2000));
+
+      // Only admin SDK handles moderation
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 9. REFERRALS  —  /referrals/{referralCode}
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Document ID = the referral code (e.g. "PRIYA-A3K7").
+    // One per user. Created when user opens referral screen.
+    //
+    // Rules:
+    //   • Anyone authenticated can READ a code (to validate on signup)
+    //   • Only the owner can CREATE their own code
+    //   • Only the system (via the owner) can UPDATE counts
+    //   • Nobody can DELETE referral records
+    //
+    match /referrals/{code} {
+      // Any authenticated user can read (to validate a code on signup)
+      allow read: if isAuthenticated();
+
+      // Create: only the owner, once, with valid initial state
+      allow create: if isAuthenticated()
+        && incoming().ownerUid == request.auth.uid
+        && isNonEmptyString(incoming().code, 20)
+        && isNonEmptyString(incoming().ownerName, 100)
+        && incoming().signupCount == 0
+        && incoming().qualifiedCount == 0
+        && incoming().referredUids.size() == 0
+        && incoming().premiumDaysEarned == 0
+        && incoming().isActive == true;
+
+      // Update: only the code owner can update (or admin SDK)
+      // Must not change ownerUid, code, or createdAt
+      allow update: if isAuthenticated()
+        && existing().ownerUid == request.auth.uid
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().code == existing().code
+        && incoming().createdAt == existing().createdAt
+        // Counts can only go up
+        && incoming().signupCount >= existing().signupCount
+        && incoming().qualifiedCount >= existing().qualifiedCount
+        // referredUids can only grow (no removal)
+        && incoming().referredUids.size() >= existing().referredUids.size()
+        // Max 20 referrals
+        && incoming().signupCount <= 20;
+
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CATCH-ALL — deny everything not explicitly matched above
+    // ═══════════════════════════════════════════════════════════════════════
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

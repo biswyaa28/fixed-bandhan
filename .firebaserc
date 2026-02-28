@@ -1,0 +1,24 @@
+{
+  "projects": {
+    "default": "bandhan-ai-prod",
+    "staging": "bandhan-ai-staging",
+    "development": "bandhan-ai-dev"
+  },
+  "targets": {
+    "bandhan-ai-prod": {
+      "hosting": {
+        "app": [
+          "bandhan-ai-prod"
+        ]
+      }
+    },
+    "bandhan-ai-staging": {
+      "hosting": {
+        "app": [
+          "bandhan-ai-staging"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

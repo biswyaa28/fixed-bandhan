@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#212121">
+  <title>Offline — Bandhan AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', system-ui, sans-serif;
+      background: #FFFFFF;
+      color: #212121;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container {
+      text-center: center;
+      max-width: 360px;
+      text-align: center;
+    }
+    .icon-box {
+      display: inline-block;
+      border: 3px solid #000;
+      padding: 16px 24px;
+      box-shadow: 4px 4px 0px #000;
+      margin-bottom: 24px;
+    }
+    .icon-box svg {
+      width: 48px;
+      height: 48px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #424242;
+      margin-bottom: 4px;
+    }
+    .subtitle-hi {
+      font-size: 13px;
+      color: #9E9E9E;
+      margin-bottom: 24px;
+    }
+    .info {
+      font-size: 12px;
+      color: #9E9E9E;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .retry-btn {
+      display: inline-block;
+      padding: 14px 32px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #FFF;
+      background: #000;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .retry-btn:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #000;
+    }
+    .retry-btn:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 #000;
+    }
+    .cached-hint {
+      margin-top: 24px;
+      font-size: 11px;
+      color: #9E9E9E;
+    }
+    .cached-hint a {
+      color: #000;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon-box">
+      <!-- Wifi-off icon -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p class="subtitle">Check your internet connection and try again.</p>
+    <p class="subtitle-hi" lang="hi">कृपया अपना इंटरनेट कनेक्शन जांचें।</p>
+
+    <p class="info">
+      Your matches and messages will sync automatically when you're back online.
+    </p>
+
+    <button class="retry-btn" onclick="window.location.reload()">
+      Try Again
+    </button>
+
+    <p class="cached-hint">
+      Already visited? <a href="/matches">Try cached Matches</a> or <a href="/chat">Chat</a>.
+    </p>
+  </div>
+
+  <script>
+    // Auto-retry when connection comes back
+    window.addEventListener('online', function() {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

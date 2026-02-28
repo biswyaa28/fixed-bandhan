@@ -1,699 +1,562 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera,
   User,
   Shield,
   ShieldCheck,
-  Heart,
   MapPin,
   GraduationCap,
   Briefcase,
   Home,
-  Utensils,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
   Save,
   LogOut,
   Trash2,
   AlertTriangle,
-  Eye,
-  EyeOff,
-  Lock,
-  Users,
-  X,
-  Plus,
-  Phone,
-  Crown,
-  Settings,
   Bell,
   Globe,
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+  HelpCircle,
+  CreditCard,
+} from "lucide-react";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-function cn(...classes: (string | undefined | null | false)[]) {
-  return twMerge(clsx(classes));
+function cn(...c: (string | undefined | null | false)[]) {
+  return twMerge(clsx(c));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface ProfileData {
   name: string;
   age: number;
   avatarUrl: string;
-  verificationLevel: 'bronze' | 'silver' | 'gold';
+  verificationLevel: "bronze" | "silver" | "gold";
   intent: string;
   city: string;
   education: string;
   career: string;
   family: string;
-  diet: string;
 }
 
-interface PrivacySettings {
-  profileVisibility: 'everyone' | 'verified' | 'premium';
-  photoPrivacy: 'blur' | 'visible';
-  locationSharing: 'city' | 'pincode';
-  screenshotAlerts: boolean;
-}
-
-interface EmergencyContact {
-  id: string;
-  name: string;
-  phone: string;
-  relationship: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock Data
-// ─────────────────────────────────────────────────────────────────────────────
-const initialProfile: ProfileData = {
-  name: 'Rahul Sharma',
+// ─── Mock data ────────────────────────────────────────────────────────────────
+const INITIAL_PROFILE: ProfileData = {
+  name: "Rahul Sharma",
   age: 28,
-  avatarUrl: '',
-  verificationLevel: 'gold',
-  intent: 'Marriage within 1-2 years',
-  city: 'Bangalore',
-  education: 'IIT Delhi',
-  career: 'Software Engineer',
-  family: 'Living with parents',
-  diet: 'Vegetarian',
+  avatarUrl: "",
+  verificationLevel: "gold",
+  intent: "Marriage within 1-2 years",
+  city: "Bangalore",
+  education: "IIT Delhi",
+  career: "Software Engineer",
+  family: "Living with parents",
 };
 
-const initialPrivacy: PrivacySettings = {
-  profileVisibility: 'verified',
-  photoPrivacy: 'blur',
-  locationSharing: 'city',
-  screenshotAlerts: true,
-};
-
-const mockContacts: EmergencyContact[] = [
-  { id: '1', name: 'Mom', phone: '+91 98765 43210', relationship: 'Mother' },
-  { id: '2', name: 'Riya Sharma', phone: '+91 98765 43211', relationship: 'Sister' },
-];
-
-const blockedUsers = [
-  { id: '1', name: 'Blocked User 1', blockedDate: '2 days ago' },
-  { id: '2', name: 'Blocked User 2', blockedDate: '1 week ago' },
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Components
-// ─────────────────────────────────────────────────────────────────────────────
-function VerificationBadge({ level }: { level: 'bronze' | 'silver' | 'gold' }) {
-  const config = {
+// ─── VerificationBadge ───────────────────────────────────────────────────────
+function VerifBadge({ level }: { level: "bronze" | "silver" | "gold" }) {
+  const cfg = {
     bronze: {
-      color: 'text-amber-700 bg-amber-500/20 border-amber-500/30',
-      icon: Shield,
-      label: 'Phone Verified',
+      cls: "bg-peach-100 border-peach-200 text-peach-700",
+      Icon: Shield,
+      label: "Phone Verified",
     },
     silver: {
-      color: 'text-midnight-200 bg-white/20 border-white/30',
-      icon: Shield,
-      label: 'Email Verified',
+      cls: "bg-ink-100   border-ink-200   text-ink-600",
+      Icon: Shield,
+      label: "ID Verified",
     },
     gold: {
-      color: 'text-gold-500 bg-gold-500/20 border-gold-500/30',
-      icon: ShieldCheck,
-      label: 'ID Verified',
+      cls: "bg-gold-100  border-gold-200  text-gold-700",
+      Icon: ShieldCheck,
+      label: "Gold Verified",
     },
-  };
-
-  const Icon = config[level].icon;
-
+  }[level];
   return (
-    <div className={cn('px-3 py-1.5 rounded-full border flex items-center space-x-1.5', config[level].color)}>
-      <Icon className="w-4 h-4" />
-      <span className="text-xs font-semibold">{config[level].label}</span>
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold",
+        cfg.cls,
+      )}
+    >
+      <cfg.Icon className="w-3 h-3" strokeWidth={2.5} />
+      {cfg.label}
+    </span>
   );
 }
 
-function AccordionSection({
-  title,
-  icon: Icon,
-  isOpen,
-  onToggle,
-  children,
-}: {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="glass-md rounded-2xl border border-white/10 overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-      >
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-            <Icon className="w-5 h-5 text-violet-400" />
-          </div>
-          <span className="font-semibold text-midnight-100">{title}</span>
-        </div>
-        {isOpen ? (
-          <ChevronUp className="w-5 h-5 text-midnight-400" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-midnight-400" />
-        )}
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-4 pt-0 space-y-4">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function Toggle({
-  enabled,
-  onChange,
-  label,
-  labelHi,
-}: {
-  enabled: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-  labelHi?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-midnight-200">{label}</p>
-        {labelHi && <p className="text-xs text-midnight-500 hindi-text">{labelHi}</p>}
-      </div>
-      <button
-        onClick={() => onChange(!enabled)}
-        className={cn(
-          'relative w-12 h-6 rounded-full transition-colors',
-          enabled ? 'bg-violet-500' : 'bg-midnight-600'
-        )}
-      >
-        <motion.div
-          animate={{ x: enabled ? 24 : 0 }}
-          className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white"
-        />
-      </button>
-    </div>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-sm text-midnight-200 mb-2">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-midnight-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value} className="bg-midnight-900">
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────────────────────────────────────────
-export default function ProfileSettingsPage() {
-  const [profile, setProfile] = useState<ProfileData>(initialProfile);
-  const [privacy, setPrivacy] = useState<PrivacySettings>(initialPrivacy);
-  const [contacts, setContacts] = useState<EmergencyContact[]>(mockContacts);
-  const [openSection, setOpenSection] = useState<string | null>('details');
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
+  const [openSection, setOpenSection] = useState<string | null>("details");
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleProfileChange = (field: keyof ProfileData, value: string) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
-    setHasChanges(true);
-  };
-
-  const handlePrivacyChange = (field: keyof PrivacySettings, value: string | boolean) => {
-    setPrivacy((prev) => ({ ...prev, [field]: value }));
+  const update = (field: keyof ProfileData, value: string) => {
+    setProfile((p) => ({ ...p, [field]: value }));
     setHasChanges(true);
   };
 
   const handleSave = async () => {
-    // Save to backend
-    console.log('Saving:', { profile, privacy });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsSaving(true);
+    await new Promise((r) => setTimeout(r, 900));
+    setIsSaving(false);
     setHasChanges(false);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    localStorage.removeItem("auth_token");
+    window.location.href = "/login";
   };
 
-  const handleDeleteAccount = async () => {
-    // Delete account logic
-    console.log('Deleting account...');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+  const handleDelete = async () => {
+    await new Promise((r) => setTimeout(r, 1500));
     handleLogout();
   };
 
+  const toggleSection = (s: string) =>
+    setOpenSection((o) => (o === s ? null : s));
+
   return (
-    <div className="min-h-screen bg-gradient-hero px-4 py-8 safe-top safe-bottom pb-24">
-      {/* Background Decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-saffron-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-violet-500/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-6"
-      >
-        <h1 className="text-2xl font-bold text-gradient-brand mb-1">Settings</h1>
-        <p className="text-sm text-midnight-300">Manage your profile and privacy</p>
-      </motion.header>
-
-      {/* Profile Header Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="relative z-10 glass-md rounded-3xl p-6 border border-white/10 mb-4"
-      >
-        <div className="flex items-start justify-between mb-4">
-          {/* Avatar */}
-          <div className="relative">
-            <motion.div whileHover={{ scale: 1.05 }} className="relative">
-              {profile.avatarUrl ? (
-                <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-violet-500/50">
-                  <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-saffron-500/20 to-violet-500/20 border-2 border-violet-500/50 flex items-center justify-center">
-                  <User className="w-8 h-8 text-violet-400" />
-                </div>
-              )}
-            </motion.div>
-            <button
-              onClick={() => setShowAvatarModal(true)}
-              className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-gradient-to-r from-saffron-500 to-violet-500 border-2 border-midnight-900"
-            >
-              <Camera className="w-4 h-4 text-white" />
-            </button>
-          </div>
-
-          {/* Verification */}
-          <VerificationBadge level={profile.verificationLevel} />
-        </div>
-
-        {/* Name & Intent */}
-        <div className="space-y-3">
+    <div className="min-h-screen bg-[#FAFAFA] safe-top pb-28">
+      {/* ── Sticky header ── */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-ink-100 safe-top">
+        <div className="max-w-lg mx-auto px-4 pt-14 pb-3.5 flex items-center justify-between">
           <div>
-            <label className="block text-xs text-midnight-400 mb-1">Name</label>
-            <input
-              type="text"
-              value={profile.name}
-              onChange={(e) => handleProfileChange('name', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-midnight-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-sm"
-            />
+            <h1 className="text-[1.15rem] font-bold text-ink-900 tracking-tight">
+              Profile & Settings
+            </h1>
+            <p className="text-[11px] text-ink-400">Manage your account</p>
           </div>
-          <div>
-            <label className="block text-xs text-midnight-400 mb-1">Looking for</label>
-            <select
-              value={profile.intent}
-              onChange={(e) => handleProfileChange('intent', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-midnight-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-sm"
-            >
-              <option>Marriage within 1-2 years</option>
-              <option>Serious relationship with marriage potential</option>
-              <option>Friendship / Networking</option>
-              <option>Healing space</option>
-            </select>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Accordion Sections */}
-      <div className="relative z-10 space-y-3">
-        {/* My Details */}
-        <AccordionSection
-          title="My Details"
-          icon={User}
-          isOpen={openSection === 'details'}
-          onToggle={() => setOpenSection(openSection === 'details' ? null : 'details')}
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-midnight-400 mb-1">City</label>
-              <div className="flex items-center space-x-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
-                <MapPin className="w-4 h-4 text-violet-400" />
-                <input
-                  type="text"
-                  value={profile.city}
-                  onChange={(e) => handleProfileChange('city', e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-midnight-100 focus:outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-midnight-400 mb-1">Education</label>
-              <div className="flex items-center space-x-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
-                <GraduationCap className="w-4 h-4 text-violet-400" />
-                <input
-                  type="text"
-                  value={profile.education}
-                  onChange={(e) => handleProfileChange('education', e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-midnight-100 focus:outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-midnight-400 mb-1">Career</label>
-              <div className="flex items-center space-x-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
-                <Briefcase className="w-4 h-4 text-violet-400" />
-                <input
-                  type="text"
-                  value={profile.career}
-                  onChange={(e) => handleProfileChange('career', e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-midnight-100 focus:outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-midnight-400 mb-1">Family</label>
-              <div className="flex items-center space-x-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
-                <Home className="w-4 h-4 text-violet-400" />
-                <input
-                  type="text"
-                  value={profile.family}
-                  onChange={(e) => handleProfileChange('family', e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-midnight-100 focus:outline-none"
-                />
-              </div>
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs text-midnight-400 mb-1">Diet</label>
-              <select
-                value={profile.diet}
-                onChange={(e) => handleProfileChange('diet', e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-midnight-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-sm"
+          <AnimatePresence>
+            {hasChanges && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-ink-900 text-white text-xs font-bold hover:bg-ink-700 transition-colors disabled:opacity-50"
               >
-                <option>Vegetarian</option>
-                <option>Eggetarian</option>
-                <option>Non-vegetarian</option>
-                <option>Jain</option>
-                <option>Halal</option>
-              </select>
-            </div>
-          </div>
-        </AccordionSection>
-
-        {/* Privacy Settings */}
-        <AccordionSection
-          title="Privacy Settings"
-          icon={Lock}
-          isOpen={openSection === 'privacy'}
-          onToggle={() => setOpenSection(openSection === 'privacy' ? null : 'privacy')}
-        >
-          <SelectField
-            label="Who can see my profile"
-            value={privacy.profileVisibility}
-            options={[
-              { value: 'everyone', label: 'Everyone' },
-              { value: 'verified', label: 'Verified users only' },
-              { value: 'premium', label: 'Premium members only' },
-            ]}
-            onChange={(v) => handlePrivacyChange('profileVisibility', v)}
-          />
-          <SelectField
-            label="Photo privacy"
-            value={privacy.photoPrivacy}
-            options={[
-              { value: 'blur', label: 'Blur until match' },
-              { value: 'visible', label: 'Always visible' },
-            ]}
-            onChange={(v) => handlePrivacyChange('photoPrivacy', v)}
-          />
-          <SelectField
-            label="Location sharing"
-            value={privacy.locationSharing}
-            options={[
-              { value: 'city', label: 'Share city only' },
-              { value: 'pincode', label: 'Share pincode area' },
-            ]}
-            onChange={(v) => handlePrivacyChange('locationSharing', v)}
-          />
-          <Toggle
-            enabled={privacy.screenshotAlerts}
-            onChange={(v) => handlePrivacyChange('screenshotAlerts', v)}
-            label="Screenshot alerts"
-            labelHi="स्क्रीनशॉट सतर्कता"
-          />
-        </AccordionSection>
-
-        {/* Safety */}
-        <AccordionSection
-          title="Safety"
-          icon={Shield}
-          isOpen={openSection === 'safety'}
-          onToggle={() => setOpenSection(openSection === 'safety' ? null : 'safety')}
-        >
-          {/* Emergency Contacts */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm text-midnight-200">Emergency Contacts</label>
-              <button className="text-xs text-violet-400 flex items-center space-x-1 hover:text-violet-300">
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </button>
-            </div>
-            <div className="space-y-2">
-              {contacts.map((contact) => (
-                <div
-                  key={contact.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
+                <motion.div
+                  animate={isSaving ? { rotate: 360 } : { rotate: 0 }}
+                  transition={
+                    isSaving
+                      ? { duration: 1, repeat: Infinity, ease: "linear" }
+                      : {}
+                  }
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                      <Phone className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-midnight-100">{contact.name}</p>
-                      <p className="text-xs text-midnight-500">{contact.relationship}</p>
-                    </div>
-                  </div>
-                  <button className="p-2 hover:bg-white/10 rounded-lg">
-                    <X className="w-4 h-4 text-midnight-400" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Block List */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm text-midnight-200">Blocked Users</label>
-              <span className="text-xs text-midnight-500">{blockedUsers.length} blocked</span>
-            </div>
-            {blockedUsers.length === 0 ? (
-              <p className="text-sm text-midnight-500 text-center py-4">No blocked users</p>
-            ) : (
-              <div className="space-y-2">
-                {blockedUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
-                  >
-                    <div>
-                      <p className="text-sm text-midnight-100">{user.name}</p>
-                      <p className="text-xs text-midnight-500">Blocked {user.blockedDate}</p>
-                    </div>
-                    <button className="text-xs text-violet-400 hover:text-violet-300">
-                      Unblock
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  <Save className="w-3.5 h-3.5" />
+                </motion.div>
+                {isSaving ? "Saving…" : "Save"}
+              </motion.button>
             )}
-          </div>
+          </AnimatePresence>
+        </div>
+      </header>
 
-          {/* Report Issue */}
-          <button className="w-full py-3 rounded-xl glass-sm border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center justify-center space-x-2">
-            <AlertTriangle className="w-4 h-4" />
-            <span>Report an Issue</span>
-          </button>
-        </AccordionSection>
-
-        {/* Account */}
-        <AccordionSection
-          title="Account"
-          icon={Settings}
-          isOpen={openSection === 'account'}
-          onToggle={() => setOpenSection(openSection === 'account' ? null : 'account')}
-        >
-          {/* Subscription */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-gold-500/10 to-saffron-500/10 border border-gold-500/30">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Crown className="w-5 h-5 text-gold-500" />
-                <span className="font-semibold text-midnight-100">Premium Plan</span>
+      <div className="max-w-lg mx-auto px-4 py-5 space-y-4">
+        {/* ── Profile identity card ── */}
+        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
+          {/* Gradient cover */}
+          <div className="h-20 bg-gradient-to-r from-lavender-100 via-blush-100 to-peach-100" />
+          <div className="px-5 pb-5 -mt-8">
+            <div className="flex items-end justify-between mb-4">
+              {/* Avatar */}
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-white shadow-md overflow-hidden flex items-center justify-center">
+                  {profile.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-lavender-100 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-lavender-600">
+                        {profile.name?.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowAvatarModal(true)}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-ink-900 border-2 border-white flex items-center justify-center"
+                >
+                  <Camera className="w-3 h-3 text-white" strokeWidth={2.5} />
+                </button>
               </div>
-              <span className="px-2 py-1 rounded-full bg-gold-500/20 border border-gold-500/30 text-xs text-gold-400">
-                Active
+              <VerifBadge level={profile.verificationLevel} />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold text-ink-400 uppercase tracking-wider block mb-1.5">
+                  Display Name
+                </label>
+                <input
+                  value={profile.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-ink-200 text-sm text-ink-900 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100 bg-white"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-ink-400 uppercase tracking-wider block mb-1.5">
+                  Looking for
+                </label>
+                <select
+                  value={profile.intent}
+                  onChange={(e) => update("intent", e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-ink-200 text-sm text-ink-900 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100 bg-white"
+                >
+                  <option>Marriage within 1-2 years</option>
+                  <option>Serious relationship with marriage potential</option>
+                  <option>Friendship / Networking</option>
+                  <option>Healing space</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Personal details accordion ── */}
+        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => toggleSection("details")}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-ink-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-lavender-100 flex items-center justify-center">
+                <User className="w-4 h-4 text-lavender-600" strokeWidth={1.5} />
+              </div>
+              <span className="text-[14px] font-semibold text-ink-900">
+                Personal Details
               </span>
             </div>
-            <p className="text-xs text-midnight-400">Renews on March 15, 2026</p>
-            <button className="mt-3 text-xs text-violet-400 hover:text-violet-300">
-              Manage Subscription →
-            </button>
-          </div>
+            <ChevronRight
+              className={cn(
+                "w-4 h-4 text-ink-400 transition-transform duration-200",
+                openSection === "details" && "rotate-90",
+              )}
+            />
+          </button>
+          <AnimatePresence initial={false}>
+            {openSection === "details" && (
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: "auto" }}
+                exit={{ height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden border-t border-ink-100"
+              >
+                <div className="p-5 grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      { label: "City", field: "city", icon: MapPin },
+                      {
+                        label: "Education",
+                        field: "education",
+                        icon: GraduationCap,
+                      },
+                      { label: "Career", field: "career", icon: Briefcase },
+                      { label: "Family", field: "family", icon: Home },
+                    ] as const
+                  ).map(({ label, field, icon: Icon }) => (
+                    <div key={field}>
+                      <label className="text-[10px] font-bold text-ink-400 uppercase tracking-wider block mb-1.5">
+                        {label}
+                      </label>
+                      <div className="relative">
+                        <Icon
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-400"
+                          strokeWidth={1.5}
+                        />
+                        <input
+                          value={profile[field] || ""}
+                          onChange={(e) => update(field, e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 rounded-xl border border-ink-200 text-sm text-ink-900 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100 bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-          {/* Logout */}
+        {/* ── Privacy accordion ── */}
+        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => toggleSection("privacy")}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-ink-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-sage-100 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-sage-600" strokeWidth={1.5} />
+              </div>
+              <span className="text-[14px] font-semibold text-ink-900">
+                Privacy & Safety
+              </span>
+            </div>
+            <ChevronRight
+              className={cn(
+                "w-4 h-4 text-ink-400 transition-transform duration-200",
+                openSection === "privacy" && "rotate-90",
+              )}
+            />
+          </button>
+          <AnimatePresence initial={false}>
+            {openSection === "privacy" && (
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: "auto" }}
+                exit={{ height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden border-t border-ink-100"
+              >
+                <div className="divide-y divide-ink-50">
+                  {[
+                    {
+                      label: "Show online status",
+                      desc: "Others see when you're active",
+                    },
+                    {
+                      label: "Blur photos",
+                      desc: "Reveal only to accepted matches",
+                    },
+                    {
+                      label: "Read receipts",
+                      desc: "Show when you've read messages",
+                    },
+                  ].map(({ label, desc }, i) => (
+                    <PrivacyRow
+                      key={label}
+                      label={label}
+                      desc={desc}
+                      defaultOn={i === 0}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ── App settings rows ── */}
+        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden divide-y divide-ink-50">
+          {[
+            {
+              icon: Bell,
+              label: "Notifications",
+              color: "bg-peach-100   text-peach-600",
+            },
+            {
+              icon: Globe,
+              label: "Language",
+              color: "bg-sky-100     text-sky-600",
+            },
+            {
+              icon: CreditCard,
+              label: "Subscription",
+              color: "bg-gold-100    text-gold-600",
+            },
+            {
+              icon: HelpCircle,
+              label: "Help & Support",
+              color: "bg-lavender-100 text-lavender-600",
+            },
+          ].map(({ icon: Icon, label, color }) => (
+            <button
+              key={label}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-ink-50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center",
+                    color,
+                  )}
+                >
+                  <Icon className="w-4 h-4" strokeWidth={1.5} />
+                </div>
+                <span className="text-[14px] font-medium text-ink-800">
+                  {label}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ink-500 transition-colors" />
+            </button>
+          ))}
+        </div>
+
+        {/* ── Danger zone ── */}
+        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden divide-y divide-ink-50">
           <button
             onClick={handleLogout}
-            className="w-full py-3 rounded-xl glass-sm border border-white/10 text-midnight-200 hover:bg-white/5 transition-colors flex items-center justify-center space-x-2"
+            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50/60 transition-colors"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
+            <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center">
+              <LogOut className="w-4 h-4 text-red-500" strokeWidth={1.5} />
+            </div>
+            <span className="text-[14px] font-medium text-red-500">
+              Sign Out
+            </span>
           </button>
-
-          {/* Delete Account */}
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="w-full py-3 rounded-xl glass-sm border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center justify-center space-x-2"
+            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50/60 transition-colors"
           >
-            <Trash2 className="w-4 h-4" />
-            <span>Delete Account</span>
+            <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center">
+              <Trash2 className="w-4 h-4 text-red-500" strokeWidth={1.5} />
+            </div>
+            <span className="text-[14px] font-medium text-red-500">
+              Delete Account
+            </span>
           </button>
-        </AccordionSection>
+        </div>
+
+        <p className="text-center text-[10px] text-ink-300 pb-2">
+          Version 1.0.0 · Bandhan AI
+        </p>
       </div>
 
-      {/* Save Button (Sticky Bottom) */}
+      {/* ── Avatar bottom sheet ── */}
       <AnimatePresence>
-        {hasChanges && (
-          <motion.footer
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-midnight-900 via-midnight-900/95 to-transparent"
-          >
-            <div className="max-w-md mx-auto">
-              <motion.button
-                onClick={handleSave}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-saffron-500 to-violet-500 text-white font-semibold hover:shadow-saffron-glow transition-shadow flex items-center justify-center space-x-2"
-              >
-                <Save className="w-5 h-5" />
-                <span>Save Changes</span>
-              </motion.button>
-            </div>
-          </motion.footer>
-        )}
-      </AnimatePresence>
-
-      {/* Avatar Upload Modal */}
-      {showAvatarModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setShowAvatarModal(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            className="glass-md rounded-2xl p-6 max-w-sm w-full border border-white/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Upload Photo</h3>
-              <button onClick={() => setShowAvatarModal(false)} className="p-2 hover:bg-white/10 rounded-xl">
-                <X className="w-5 h-5 text-midnight-300" />
-              </button>
-            </div>
-            <label className="block">
-              <input type="file" accept="image/*" className="hidden" />
-              <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center hover:border-violet-500/50 transition-colors cursor-pointer">
-                <Camera className="w-10 h-10 text-midnight-400 mx-auto mb-3" />
-                <p className="text-sm text-midnight-300">Click to upload or drag and drop</p>
-                <p className="text-xs text-midnight-500 mt-1">PNG, JPG up to 5MB</p>
-              </div>
-            </label>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Delete Account Confirmation */}
-      {showDeleteConfirm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            className="glass-md rounded-2xl p-6 max-w-sm w-full border border-white/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-rose-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">Delete Account?</h3>
-            </div>
-            <p className="text-sm text-midnight-300 mb-6">
-              This action cannot be undone. All your data, matches, and conversations will be permanently deleted.
-            </p>
-            <div className="flex space-x-3">
+        {showAvatarModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAvatarModal(false)}
+              className="fixed inset-0 bg-ink-900/25 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl p-6 pb-10 safe-bottom shadow-2xl"
+            >
+              <div className="w-10 h-1 bg-ink-200 rounded-full mx-auto mb-5" />
+              <h3 className="text-base font-bold text-ink-900 mb-4">
+                Update Profile Photo
+              </h3>
+              <label className="block cursor-pointer">
+                <input type="file" accept="image/*" className="hidden" />
+                <div className="border-2 border-dashed border-ink-200 rounded-2xl p-10 text-center hover:border-lavender-300 hover:bg-lavender-50 transition-colors">
+                  <Camera
+                    className="w-8 h-8 text-ink-300 mx-auto mb-2"
+                    strokeWidth={1.5}
+                  />
+                  <p className="text-sm font-semibold text-ink-600">
+                    Tap to upload
+                  </p>
+                  <p className="text-xs text-ink-400 mt-0.5">
+                    PNG or JPG, max 5 MB
+                  </p>
+                </div>
+              </label>
               <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-3 rounded-xl glass-sm border border-white/10 text-midnight-200 hover:bg-white/5 transition-colors"
+                onClick={() => setShowAvatarModal(false)}
+                className="w-full mt-3 py-3 rounded-2xl border border-ink-200 text-sm font-medium text-ink-500 hover:bg-ink-50 transition-colors"
               >
                 Cancel
               </button>
-              <button
-                onClick={handleDeleteAccount}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:shadow-lg transition-shadow"
-              >
-                Delete
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Delete confirm dialog ── */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="fixed inset-0 bg-ink-900/30 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-5"
+            >
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-ink-100 shadow-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle
+                      className="w-5 h-5 text-red-500"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <h3 className="text-[15px] font-bold text-ink-900">
+                    Delete Account?
+                  </h3>
+                </div>
+                <p className="text-[13px] text-ink-500 mb-5 leading-relaxed">
+                  This cannot be undone. All your data, matches, and
+                  conversations will be permanently deleted.
+                </p>
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Privacy toggle row ───────────────────────────────────────────────────────
+function PrivacyRow({
+  label,
+  desc,
+  defaultOn,
+}: {
+  label: string;
+  desc: string;
+  defaultOn?: boolean;
+}) {
+  const [on, setOn] = useState(!!defaultOn);
+  return (
+    <div className="flex items-center justify-between px-5 py-3.5">
+      <div>
+        <p className="text-[13px] font-medium text-ink-800">{label}</p>
+        <p className="text-[11px] text-ink-400">{desc}</p>
+      </div>
+      <button
+        onClick={() => setOn((v) => !v)}
+        className={cn(
+          "relative w-10 h-6 rounded-full transition-colors duration-200 shrink-0",
+          on ? "bg-lavender-400" : "bg-ink-200",
+        )}
+      >
+        <motion.div
+          animate={{ x: on ? 16 : 2 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
+        />
+      </button>
     </div>
   );
 }

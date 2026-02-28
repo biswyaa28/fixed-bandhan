@@ -1,0 +1,17 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Bandhan AI — SPA Routing Rules
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# This file is for Netlify deployments. Firebase Hosting uses firebase.json
+# rewrites instead. Vercel uses vercel.json or next.config.js rewrites.
+#
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Health check — pass through
+/api/health    /api/health    200
+
+# API routes — pass through to functions / mock handlers
+/api/*         /api/:splat    200
+
+# SPA fallback — all other routes serve index.html
+/*             /index.html    200

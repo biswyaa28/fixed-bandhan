@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+dist
+coverage
+public/sw.js
+public/workbox-*.js
+public/firebase-messaging-sw.js
+*.min.js
+*.min.css
+api/

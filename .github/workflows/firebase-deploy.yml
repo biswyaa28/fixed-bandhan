@@ -1,0 +1,207 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Bandhan AI — Firebase Hosting Deployment (GitHub Actions)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Triggers:
+#   • Push to main       → Deploy to PRODUCTION  (bandhan-ai-prod)
+#   • Push to staging     → Deploy to STAGING     (bandhan-ai-staging)
+#   • Pull request        → Deploy PREVIEW channel (expires in 7 days)
+#
+# SETUP:
+#   1. Generate a Firebase CI token:   firebase login:ci
+#   2. Add the token as a GitHub repo secret named FIREBASE_TOKEN
+#   3. Add all NEXT_PUBLIC_* env vars as GitHub repo secrets
+#   4. Ensure .firebaserc has correct project aliases
+#
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: firebase-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  FIREBASE_STATIC: "true"
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # BUILD & LINT
+  # ──────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Build static export
+        run: npm run build:firebase
+        env:
+          FIREBASE_STATIC: "true"
+          NEXT_PUBLIC_DEMO_MODE: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'https://bandhan-ai-prod.web.app' }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+          NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: out
+          path: out/
+          retention-days: 1
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # DEPLOY PREVIEW (Pull Requests)
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-preview:
+    name: Deploy Preview
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: out
+          path: out/
+
+      - name: Deploy to Firebase Preview Channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: bandhan-ai-prod
+          expires: 7d
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # DEPLOY STAGING (push to staging branch)
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: out
+          path: out/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Staging
+        run: firebase deploy --only hosting -P staging --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Health check (staging)
+        run: |
+          sleep 10
+          curl -f https://bandhan-ai-staging.web.app/api/health || echo "⚠️ Health check failed"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # DEPLOY PRODUCTION (push to main branch)
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: out
+          path: out/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Production
+        run: firebase deploy --only hosting -P default --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Health check (production)
+        run: |
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://bandhan-ai-prod.web.app/api/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Health check returned HTTP $STATUS — initiating rollback"
+            firebase hosting:rollback -P default --token "$FIREBASE_TOKEN"
+            exit 1
+          fi
+          echo "✅ Health check passed (HTTP 200)"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Notify success
+        if: success()
+        run: echo "🚀 Production deployment successful!"
+
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Production deployment failed — automatic rollback triggered"

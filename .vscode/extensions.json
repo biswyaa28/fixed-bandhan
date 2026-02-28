@@ -1,0 +1,31 @@
+{
+  "recommendations": [
+    // ── Essential (auto-format + lint) ──
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+
+    // ── Tailwind CSS ──
+    "bradlc.vscode-tailwindcss",
+
+    // ── TypeScript/React ──
+    "ms-vscode.vscode-typescript-next",
+
+    // ── Git ──
+    "eamodio.gitlens",
+
+    // ── DX Quality of Life ──
+    "mikestead.dotenv",
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker",
+
+    // ── Firebase ──
+    "toba.vsfire",
+
+    // ── Testing ──
+    "orta.vscode-jest",
+
+    // ── Accessibility ──
+    "deque-systems.vscode-axe-linter"
+  ],
+  "unwantedRecommendations": []
+}
