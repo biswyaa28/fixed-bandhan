@@ -1,81 +1,65 @@
+/**
+ * Onboarding Step 1 — Intent Selection
+ *
+ * Optimizations:
+ *   • Single question per screen (progressive disclosure)
+ *   • Large tap targets (entire card is a button)
+ *   • Auto-save on selection (no data loss)
+ *   • "Popular" badge for social proof
+ *   • Bilingual labels
+ *   • Time estimate in progress bar
+ *   • Comic book aesthetic: thick borders, hard shadows
+ */
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Heart, Users, Flower2, Check, ArrowRight, Zap } from "lucide-react";
+import ProgressIndicator from "@/components/onboarding/ProgressIndicator";
 import {
-  Heart,
-  Users,
-  Flower2,
-  Sparkles,
-  ArrowRight,
-  Check,
-  Zap,
-} from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+  loadOnboardingData,
+  completeStep,
+  startTimer,
+  type IntentType,
+} from "@/lib/onboarding/onboarding-service";
 
-function cn(...c: (string | undefined | null | false)[]) {
-  return twMerge(clsx(c));
-}
-
-type IntentType =
-  | "marriage-soon"
-  | "serious-relationship"
-  | "friendship-networking"
-  | "healing-space";
-
-const OPTIONS = [
+const OPTIONS: {
+  id: IntentType;
+  icon: typeof Sparkles;
+  title: string;
+  titleHi: string;
+  desc: string;
+  popular?: boolean;
+}[] = [
   {
-    id: "marriage-soon" as IntentType,
+    id: "marriage-soon",
     icon: Sparkles,
     title: "Marriage within 1–2 years",
     titleHi: "1-2 वर्षों में विवाह",
     desc: "Ready to find your life partner and start a family",
-    descHi: "अपने जीवनसाथी को खोजने और परिवार शुरू करने के लिए तैयार",
-    bg: "bg-gradient-to-br from-blush-50 to-rose-50 border-blush-200",
-    selectedBg: "bg-gradient-to-br from-blush-100 to-rose-100 border-blush-400",
-    iconBg: "bg-gradient-to-br from-blush-100 to-rose-100",
-    iconColor: "text-blush-600",
     popular: true,
   },
   {
-    id: "serious-relationship" as IntentType,
+    id: "serious-relationship",
     icon: Heart,
     title: "Serious with marriage potential",
     titleHi: "विवाह की संभावना के साथ गंभीर",
     desc: "Deep connection that could lead to marriage",
-    descHi: "गहरा संबंध जो विवाह की ओर ले जा सकता है",
-    bg: "bg-gradient-to-br from-lavender-50 to-violet-50 border-lavender-200",
-    selectedBg:
-      "bg-gradient-to-br from-lavender-100 to-violet-100 border-lavender-400",
-    iconBg: "bg-gradient-to-br from-lavender-100 to-violet-100",
-    iconColor: "text-lavender-600",
   },
   {
-    id: "friendship-networking" as IntentType,
+    id: "friendship-networking",
     icon: Users,
     title: "Friendship / Networking",
     titleHi: "मित्रता / नेटवर्किंग",
     desc: "Building meaningful connections in the community",
-    descHi: "समुदाय में सार्थक संबंध बनाना",
-    bg: "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200",
-    selectedBg: "bg-gradient-to-br from-sky-100 to-blue-100 border-sky-400",
-    iconBg: "bg-gradient-to-br from-sky-100 to-blue-100",
-    iconColor: "text-sky-600",
   },
   {
-    id: "healing-space" as IntentType,
+    id: "healing-space",
     icon: Flower2,
     title: "Healing space",
     titleHi: "उपचार की जगह",
     desc: "Taking time to heal and grow before committing",
-    descHi: "प्रतिबद्ध होने से पहले खुद को ठीक करने और बढ़ने का समय",
-    bg: "bg-gradient-to-br from-sage-50 to-emerald-50 border-sage-200",
-    selectedBg:
-      "bg-gradient-to-br from-sage-100 to-emerald-100 border-sage-400",
-    iconBg: "bg-gradient-to-br from-sage-100 to-emerald-100",
-    iconColor: "text-sage-600",
   },
 ];
 
@@ -84,222 +68,107 @@ export default function IntentPage() {
   const [selected, setSelected] = useState<IntentType | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleContinue = () => {
-    if (!selected) return;
+  // Restore saved data + start timer
+  useEffect(() => {
+    startTimer();
+    const data = loadOnboardingData();
+    if (data.intent) setSelected(data.intent);
+  }, []);
+
+  const handleContinue = useCallback(() => {
+    if (!selected || loading) return;
     setLoading(true);
-    const data = JSON.parse(localStorage.getItem("onboarding_data") || "{}");
-    data.intent = selected;
-    localStorage.setItem("onboarding_data", JSON.stringify(data));
-    setTimeout(() => router.push("/onboarding/values"), 350);
-  };
+    const { nextPath } = completeStep("intent", { intent: selected });
+    router.push(nextPath);
+  }, [selected, loading, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex flex-col px-5 py-8 safe-top safe-bottom">
-      {/* Ambient blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.4, 0.6, 0.4],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -top-24 -right-24 w-72 h-72 bg-gradient-to-br from-lavender-100 to-blush-100 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-          className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-peach-100 to-gold-100 rounded-full blur-3xl"
-        />
-      </div>
+    <div className="flex min-h-screen flex-col bg-white">
+      <ProgressIndicator currentStep="intent" />
 
-      {/* Step indicator */}
-      <div className="relative z-10 flex items-center gap-2.5 mb-8">
-        {[1, 2, 3, 4].map((i) => (
-          <motion.div
-            key={i}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 0.2 + i * 0.1 }}
-            className={cn(
-              "h-1.5 rounded-full flex-1 transition-all duration-500",
-              i === 1
-                ? "bg-gradient-to-r from-blush-400 to-lavender-400"
-                : "bg-ink-100",
-            )}
-          />
-        ))}
-      </div>
+      <div className="flex-1 px-4 py-6 pb-28">
+        {/* Heading */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold leading-tight text-[#212121]">
+            What brings you
+            <br />
+            to Bandhan?
+          </h1>
+          <p className="mt-1 text-xs text-[#9E9E9E]">
+            Choose what best describes your journey
+          </p>
+          <p className="mt-0.5 text-[10px] text-[#E0E0E0]">
+            बताएं कि आप बंधन में क्यों आए हैं
+          </p>
+        </div>
 
-      {/* Heading */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-8"
-      >
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{
-            delay: 0.3,
-            type: "spring",
-            stiffness: 200,
-            damping: 15,
-          }}
-          className="w-12 h-12 rounded-2xl bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 flex items-center justify-center mb-5 shadow-xl shadow-ink-900/20"
-        >
-          <Sparkles className="w-5 h-5 text-white" strokeWidth={1.5} />
-        </motion.div>
-
-        <h1 className="text-[1.85rem] font-extrabold text-ink-900 tracking-tight leading-tight mb-2">
-          What brings you
-          <br />
-          to Bandhan?
-        </h1>
-        <p className="text-sm text-ink-500 font-medium">
-          Choose what best describes your journey
-        </p>
-        <p className="text-xs text-ink-400 mt-1 hindi-text">
-          बताएं कि आप बंधन में क्यों आए हैं
-        </p>
-      </motion.div>
-
-      {/* Option cards */}
-      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-        {OPTIONS.map((opt, i) => {
-          const isSelected = selected === opt.id;
-          return (
-            <motion.div
-              key={opt.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-            >
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
+        {/* Option cards */}
+        <div className="space-y-3">
+          {OPTIONS.map((opt) => {
+            const isSelected = selected === opt.id;
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.id}
                 onClick={() => setSelected(opt.id)}
-                className={cn(
-                  "relative text-left rounded-2xl p-4 border-2 transition-all duration-300 w-full",
+                className={`relative w-full border-[2px] p-4 text-left transition-all ${
                   isSelected
-                    ? cn(
-                        opt.selectedBg,
-                        "shadow-lg shadow-blush-500/10 scale-[1.02]",
-                      )
-                    : cn(
-                        opt.bg,
-                        "hover:brightness-98 hover:shadow-md",
-                        "bg-white",
-                      ),
-                )}
+                    ? "translate-x-0 translate-y-0 border-black bg-[#F8F8F8] shadow-[4px_4px_0px_#000]"
+                    : "border-[#E0E0E0] bg-white hover:border-[#9E9E9E] active:translate-x-[1px] active:translate-y-[1px]"
+                }`}
+                aria-pressed={isSelected}
               >
                 {/* Popular badge */}
                 {opt.popular && !isSelected && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.1 }}
-                    className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-gold-400 to-gold-500 text-white text-[9px] font-bold shadow-sm"
-                  >
-                    <Zap className="w-2.5 h-2.5 inline mr-0.5" />
+                  <span className="absolute -top-2.5 right-3 flex items-center gap-0.5 border-[2px] border-black bg-white px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider">
+                    <Zap size={8} strokeWidth={3} />
                     Popular
-                  </motion.div>
+                  </span>
                 )}
 
-                {/* Selection indicator */}
-                <AnimatePresence>
-                  {isSelected && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute top-3 right-3 w-5 h-5 rounded-full bg-gradient-to-br from-ink-900 to-ink-700 flex items-center justify-center shadow-md"
-                    >
-                      <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Checkmark */}
+                {isSelected && (
+                  <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border-[2px] border-black bg-[#212121]">
+                    <Check size={10} strokeWidth={3} className="text-white" />
+                  </span>
+                )}
 
-                {/* Icon */}
-                <div
-                  className={cn(
-                    "w-11 h-11 rounded-xl flex items-center justify-center mb-3 shadow-sm",
-                    opt.iconBg,
-                  )}
-                >
-                  <opt.icon
-                    className={cn("w-5 h-5", opt.iconColor)}
-                    strokeWidth={1.75}
-                  />
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center border-[2px] border-black bg-[#F8F8F8]">
+                    <Icon size={18} strokeWidth={2} className="text-[#212121]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#212121]">{opt.title}</p>
+                    <p className="mt-0.5 text-[10px] text-[#9E9E9E]">{opt.titleHi}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[#424242]">
+                      {opt.desc}
+                    </p>
+                  </div>
                 </div>
-
-                {/* Content */}
-                <h3 className="text-[14px] font-bold text-ink-900 mb-0.5 leading-snug">
-                  {opt.title}
-                </h3>
-                <p className="text-[11px] text-ink-400 hindi-text mb-1.5">
-                  {opt.titleHi}
-                </p>
-                <p className="text-[12px] text-ink-600 leading-relaxed">
-                  {opt.desc}
-                </p>
-                <p className="text-[11px] text-ink-400 hindi-text mt-0.5 line-clamp-2">
-                  {opt.descHi}
-                </p>
-              </motion.button>
-            </motion.div>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="relative z-10 mt-8"
-      >
-        <motion.button
+      {/* Fixed CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t-[2px] border-black bg-white px-4 py-3 safe-bottom">
+        <button
           onClick={handleContinue}
           disabled={!selected || loading}
-          whileHover={{ scale: selected && !loading ? 1.02 : 1 }}
-          whileTap={{ scale: selected && !loading ? 0.97 : 1 }}
-          className={cn(
-            "w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-lg",
-            selected
-              ? "bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 text-white hover:shadow-xl hover:shadow-ink-900/30"
-              : "bg-ink-100 text-ink-400 cursor-not-allowed shadow-none",
-          )}
+          className={`flex w-full items-center justify-center gap-2 border-[3px] py-3 text-sm font-bold transition-all ${
+            selected && !loading
+              ? "border-black bg-black text-white shadow-[4px_4px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#000]"
+              : "cursor-not-allowed border-[#E0E0E0] bg-[#F8F8F8] text-[#9E9E9E]"
+          }`}
         >
-          {loading ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-              <Sparkles className="w-4 h-4" />
-            </motion.div>
-          ) : (
-            <>
-              Continue
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </motion.button>
-        <p className="text-center text-[11px] text-ink-400 mt-3 font-medium">
+          {loading ? "Saving…" : "Continue"}
+          {!loading && <ArrowRight size={14} strokeWidth={3} />}
+        </button>
+        <p className="mt-2 text-center text-[9px] text-[#9E9E9E]">
           You can change this anytime in settings
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

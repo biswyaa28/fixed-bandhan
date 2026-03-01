@@ -1,0 +1,15 @@
+export {
+  submitFeedback,
+  getFeedback,
+  getFeedbackStats,
+  updateFeedbackStatus,
+  upvoteFeatureRequest,
+  shouldPromptNPS,
+  markNPSPrompted,
+  type FeedbackEntry,
+  type FeedbackType,
+  type FeedbackCategory,
+  type FeedbackStatus,
+  type FeedbackSentiment,
+  type FeedbackStats,
+} from "./feedback-service";

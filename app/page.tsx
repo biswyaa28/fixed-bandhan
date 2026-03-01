@@ -3,15 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  Heart,
-  Shield,
-  Sparkles,
-  Users,
-  ShieldCheck,
-  Lock,
-  Star,
-} from "lucide-react";
+import { Heart, Shield, Sparkles, Users, ShieldCheck, Lock, Star } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -72,7 +64,7 @@ export default function HomePage() {
       ? "/login"
       : !published
         ? "/onboarding/intent"
-        : "/matches";
+        : "/discover";
 
     const start = Date.now();
     const duration = 2000;
@@ -92,21 +84,21 @@ export default function HomePage() {
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-hero">
         <div className="text-ink-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-hero px-6">
       {/* Enhanced ambient background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.6, scale: 1 }}
           transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
-          className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full bg-gradient-to-br from-lavender-100 to-blush-100 blur-[120px]"
+          className="absolute -right-40 -top-40 h-[480px] w-[480px] rounded-full bg-gradient-to-br from-lavender-100 to-blush-100 blur-[120px]"
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -117,13 +109,13 @@ export default function HomePage() {
             repeatType: "reverse",
             delay: 0.5,
           }}
-          className="absolute -bottom-32 -left-32 w-[380px] h-[380px] rounded-full bg-gradient-to-tr from-peach-100 to-gold-100 blur-[100px]"
+          className="absolute -bottom-32 -left-32 h-[380px] w-[380px] rounded-full bg-gradient-to-tr from-peach-100 to-gold-100 blur-[100px]"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.4 }}
           transition={{ duration: 5, repeat: Infinity, repeatType: "reverse" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-sage-50 to-sky-50 blur-[110px]"
+          className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-sage-50 to-sky-50 blur-[110px]"
         />
 
         {/* Decorative particles */}
@@ -144,7 +136,7 @@ export default function HomePage() {
               repeat: Infinity,
               delay: i * 0.3,
             }}
-            className="absolute w-1 h-1 rounded-full bg-gradient-to-r from-blush-300 to-lavender-300"
+            className="absolute h-1 w-1 rounded-full bg-gradient-to-r from-blush-300 to-lavender-300"
             style={{
               top: `${20 + Math.random() * 60}%`,
               left: `${20 + Math.random() * 60}%`,
@@ -153,7 +145,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div className="relative z-10 text-center w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm text-center">
         {/* Enhanced Logo mark */}
         <motion.div
           initial={{ scale: 0.7, opacity: 0, rotate: -10 }}
@@ -164,14 +156,14 @@ export default function HomePage() {
             stiffness: 280,
             damping: 20,
           }}
-          className="mx-auto mb-8 relative"
+          className="relative mx-auto mb-8"
         >
           {/* Outer glow ring */}
-          <div className="absolute inset-0 rounded-[28px] bg-gradient-to-br from-blush-200 via-lavender-200 to-gold-200 blur-2xl opacity-40 scale-125" />
+          <div className="absolute inset-0 scale-125 rounded-[28px] bg-gradient-to-br from-blush-200 via-lavender-200 to-gold-200 opacity-40 blur-2xl" />
 
           {/* Main logo container */}
           <div className="relative">
-            <div className="w-[84px] h-[84px] rounded-[26px] bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 flex items-center justify-center shadow-2xl shadow-ink-900/30">
+            <div className="flex h-[84px] w-[84px] items-center justify-center rounded-[26px] bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 shadow-2xl shadow-ink-900/30">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{
@@ -181,7 +173,7 @@ export default function HomePage() {
                 }}
               >
                 <Heart
-                  className="w-10 h-10 text-white"
+                  className="h-10 w-10 text-white"
                   strokeWidth={1.5}
                   fill="white"
                   fillOpacity={0.2}
@@ -194,9 +186,9 @@ export default function HomePage() {
               initial={{ scale: 0, rotate: 0 }}
               animate={{ scale: [0, 1, 0], rotate: 180 }}
               transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-              className="absolute -top-2 -right-2"
+              className="absolute -right-2 -top-2"
             >
-              <Sparkles className="w-5 h-5 text-gold-400" />
+              <Sparkles className="h-5 w-5 text-gold-400" />
             </motion.div>
             <motion.div
               initial={{ scale: 0, rotate: 0 }}
@@ -204,7 +196,7 @@ export default function HomePage() {
               transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
               className="absolute -bottom-1 -left-1"
             >
-              <Star className="w-4 h-4 text-blush-400" />
+              <Star className="h-4 w-4 text-blush-400" />
             </motion.div>
           </div>
         </motion.div>
@@ -216,21 +208,21 @@ export default function HomePage() {
           transition={{ delay: 0.25 }}
           className="mb-2"
         >
-          <h1 className="text-[2.25rem] font-extrabold tracking-[-0.04em] text-ink-900 leading-none">
+          <h1 className="text-[2.25rem] font-extrabold leading-none tracking-[-0.04em] text-ink-900">
             <span className="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 bg-clip-text text-transparent">
               Bandhan
             </span>
-            <span className="text-ink-400 font-light ml-1">AI</span>
+            <span className="ml-1 font-light text-ink-400">AI</span>
           </h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="mt-2.5 text-[0.85rem] text-ink-500 font-medium tracking-wide uppercase"
+            className="mt-2.5 text-[0.85rem] font-medium uppercase tracking-wide text-ink-500"
           >
             Your Sacred Journey Begins
           </motion.p>
-          <p className="text-[0.7rem] text-ink-400 hindi-text mt-0.5">
+          <p className="hindi-text mt-0.5 text-[0.7rem] text-ink-400">
             आपकी पवित्र यात्रा यहाँ शुरू होती है
           </p>
         </motion.div>
@@ -251,14 +243,12 @@ export default function HomePage() {
               className="flex flex-col items-center"
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-extrabold bg-gradient-to-r from-ink-900 to-ink-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-ink-900 to-ink-600 bg-clip-text text-xl font-extrabold text-transparent">
                   {value}
                 </span>
-                <Icon className="w-3.5 h-3.5 text-ink-400" strokeWidth={2} />
+                <Icon className="h-3.5 w-3.5 text-ink-400" strokeWidth={2} />
               </div>
-              <span className="text-[9px] text-ink-400 mt-0.5 font-medium">
-                {label}
-              </span>
+              <span className="mt-0.5 text-[9px] font-medium text-ink-400">{label}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -270,34 +260,30 @@ export default function HomePage() {
           transition={{ delay: 0.7 }}
           className="mt-8 flex flex-col gap-2"
         >
-          {FEATURES.map(
-            ({ icon: Icon, label, sublabel, bg, iconBg, iconColor }) => (
-              <motion.div
-                key={label}
-                whileHover={{ scale: 1.02 }}
+          {FEATURES.map(({ icon: Icon, label, sublabel, bg, iconBg, iconColor }) => (
+            <motion.div
+              key={label}
+              whileHover={{ scale: 1.02 }}
+              className={cn(
+                "flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 transition-all duration-200",
+                bg,
+                "cursor-default hover:shadow-md",
+              )}
+            >
+              <div
                 className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all duration-200",
-                  bg,
-                  "hover:shadow-md cursor-default",
+                  "flex h-8 w-8 items-center justify-center rounded-xl",
+                  iconBg,
                 )}
               >
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center",
-                    iconBg,
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4", iconColor)} strokeWidth={2} />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-[12px] font-semibold text-ink-800">
-                    {label}
-                  </p>
-                  <p className="text-[10px] text-ink-500">{sublabel}</p>
-                </div>
-              </motion.div>
-            ),
-          )}
+                <Icon className={cn("h-4 w-4", iconColor)} strokeWidth={2} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[12px] font-semibold text-ink-800">{label}</p>
+                <p className="text-[10px] text-ink-500">{sublabel}</p>
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
 
         {/* Enhanced Progress bar */}
@@ -307,7 +293,7 @@ export default function HomePage() {
           transition={{ delay: 0.85 }}
           className="mt-10"
         >
-          <div className="h-1 w-full rounded-full bg-ink-100 overflow-hidden shadow-inner">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-ink-100 shadow-inner">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-blush-400 via-lavender-400 to-gold-400"
               style={{ width: `${progress * 100}%` }}
@@ -318,7 +304,7 @@ export default function HomePage() {
             <motion.span
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-[11px] text-ink-400 font-medium"
+              className="text-[11px] font-medium text-ink-400"
             >
               Preparing your matches...
             </motion.span>
@@ -326,7 +312,7 @@ export default function HomePage() {
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             >
-              <Sparkles className="w-3 h-3 text-lavender-400" />
+              <Sparkles className="h-3 w-3 text-lavender-400" />
             </motion.div>
           </div>
         </motion.div>
@@ -339,17 +325,17 @@ export default function HomePage() {
         transition={{ delay: 1 }}
         className="absolute bottom-6 left-0 right-0 px-6"
       >
-        <div className="flex items-center justify-center gap-4 flex-wrap">
+        <div className="flex flex-wrap items-center justify-center gap-4">
           {TRUST_BADGES.map(({ icon: Icon, label }) => (
             <motion.div
               key={label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2 }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/60 backdrop-blur-sm border border-ink-100 shadow-sm"
+              className="flex items-center gap-1.5 rounded-full border border-ink-100 bg-white/60 px-2.5 py-1.5 shadow-sm backdrop-blur-sm"
             >
-              <Icon className="w-3 h-3 text-ink-400" strokeWidth={2} />
-              <span className="text-[9px] text-ink-500 font-medium whitespace-nowrap">
+              <Icon className="h-3 w-3 text-ink-400" strokeWidth={2} />
+              <span className="whitespace-nowrap text-[9px] font-medium text-ink-500">
                 {label}
               </span>
             </motion.div>

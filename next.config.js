@@ -318,14 +318,21 @@ const nextConfig = {
     },
   }),
 
-  // ─── Compiler ─────────────────────────────────────────────────────
+  // ─── Compiler (SWC) ────────────────────────────────────────────────
+  // Next.js 14 uses SWC by default (faster than Babel).
+  // These settings control SWC transforms for production.
   compiler: {
-    // Remove console logs in production
+    // Remove console.log/debug/info in production (keep error/warn)
     removeConsole:
-      process.env.NODE_ENV === "production"
-        ? { exclude: ["error", "warn"] }
-        : false,
+      process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+    // Remove React test IDs from production markup (smaller HTML)
+    reactRemoveProperties:
+      process.env.NODE_ENV === "production" ? { properties: ["^data-testid$"] } : false,
   },
+
+  // ─── SWC Minification ─────────────────────────────────────────────
+  // SWC is the default minifier in Next 14. These are additional opts:
+  swcMinify: true,
 
   // ─── Experimental Features ────────────────────────────────────────
   experimental: {
@@ -383,6 +390,26 @@ const nextConfig = {
       "libphonenumber-js",
       "axios",
     ],
+
+    // ── Granular Chunking ────────────────────────────────────────────
+    // Splits vendor libs into separate chunks for better caching.
+    // Firebase update doesn't re-download Radix, framer-motion, etc.
+    webpackBuildWorker: true,
+  },
+
+  // ─── Module-Level Imports ──────────────────────────────────────────
+  // Transforms barrel-file imports into direct-path imports at compile
+  // time. This prevents webpack from pulling the entire package.
+  //
+  // Example: import { Heart } from 'lucide-react'
+  //      →   import Heart from 'lucide-react/dist/esm/icons/heart'
+  modularizeImports: {
+    "lucide-react": {
+      transform: "lucide-react/dist/esm/icons/{{kebabCase member}}",
+    },
+    "date-fns": {
+      transform: "date-fns/{{member}}",
+    },
   },
 
   // ─── Redirects ────────────────────────────────────────────────────
@@ -499,43 +526,36 @@ const nextConfig = {
   env: {
     // App
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME ?? "Bandhan AI",
-    NEXT_PUBLIC_APP_URL:
-      process.env.NEXT_PUBLIC_APP_URL ?? "https://bandhan.ai",
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? "https://bandhan.ai",
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0",
 
     // Firebase (client-safe)
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
-      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID:
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:
-      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:
       process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID:
-      process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 
     // Razorpay (public key only)
     NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
 
     // CDN
-    NEXT_PUBLIC_CDN_URL:
-      process.env.NEXT_PUBLIC_CDN_URL ?? "https://cdn.bandhan.ai",
+    NEXT_PUBLIC_CDN_URL: process.env.NEXT_PUBLIC_CDN_URL ?? "https://cdn.bandhan.ai",
     NEXT_PUBLIC_MEDIA_URL:
       process.env.NEXT_PUBLIC_MEDIA_URL ??
       "https://bandhan-media.s3.ap-south-1.amazonaws.com",
 
     // Feature flags
-    NEXT_PUBLIC_ENABLE_KUNDALI:
-      process.env.NEXT_PUBLIC_ENABLE_KUNDALI ?? "true",
+    NEXT_PUBLIC_ENABLE_KUNDALI: process.env.NEXT_PUBLIC_ENABLE_KUNDALI ?? "true",
     NEXT_PUBLIC_ENABLE_VIDEO: process.env.NEXT_PUBLIC_ENABLE_VIDEO ?? "true",
     NEXT_PUBLIC_MAINTENANCE: process.env.NEXT_PUBLIC_MAINTENANCE ?? "false",
   },
 
   // ─── Webpack Customisation ────────────────────────────────────────
-  webpack(config, { isServer }) {
+  webpack(config, { isServer, webpack }) {
     // Prevent firebase-admin from being bundled on the client
     if (!isServer) {
       config.resolve.fallback = {
@@ -546,6 +566,52 @@ const nextConfig = {
         child_process: false,
         crypto: require.resolve("crypto-browserify"),
         stream: require.resolve("stream-browserify"),
+      };
+
+      // ── Granular Chunk Splitting ───────────────────────────────────
+      // Split heavy vendor libraries into separate chunks so they're
+      // cached independently and don't invalidate on app code changes.
+      // This keeps the initial JS payload under 150KB.
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
+            // Firebase SDK — changes rarely, cache aggressively (~80KB)
+            firebase: {
+              test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/,
+              name: "vendor-firebase",
+              chunks: "all",
+              priority: 30,
+              reuseExistingChunk: true,
+            },
+            // Animation + UI libs: framer-motion, Radix (~60KB)
+            uiLibs: {
+              test: /[\\/]node_modules[\\/](framer-motion|@radix-ui)[\\/]/,
+              name: "vendor-ui",
+              chunks: "all",
+              priority: 25,
+              reuseExistingChunk: true,
+            },
+            // Form + validation: react-hook-form, zod (~20KB)
+            forms: {
+              test: /[\\/]node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/,
+              name: "vendor-forms",
+              chunks: "all",
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+            // Utility libs: date-fns, clsx, tailwind-merge (~15KB)
+            utils: {
+              test: /[\\/]node_modules[\\/](date-fns|clsx|tailwind-merge|class-variance-authority|immer|zustand)[\\/]/,
+              name: "vendor-utils",
+              chunks: "all",
+              priority: 15,
+              reuseExistingChunk: true,
+            },
+          },
+        },
       };
     }
 

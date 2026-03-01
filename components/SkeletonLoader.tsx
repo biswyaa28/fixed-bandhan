@@ -76,7 +76,7 @@ export function ProfileCardSkeleton() {
       <Shimmer h="h-64" className="border-b-2 border-[#E0E0E0]" />
 
       {/* Content */}
-      <div className="p-4 space-y-3">
+      <div className="space-y-3 p-4">
         {/* Name + age */}
         <div className="flex items-center gap-2">
           <Shimmer w="w-32" h="h-5" />
@@ -109,12 +109,12 @@ export function ProfileCardSkeleton() {
 
 function ChatListItemSkeleton() {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E0E0E0]">
+    <div className="flex items-center gap-3 border-b border-[#E0E0E0] px-4 py-3">
       {/* Avatar */}
       <Shimmer w="w-12" h="h-12" className="flex-shrink-0 border-2 border-[#E0E0E0]" />
 
       {/* Content */}
-      <div className="flex-1 min-w-0 space-y-2">
+      <div className="min-w-0 flex-1 space-y-2">
         <div className="flex items-center justify-between">
           <Shimmer w="w-24" h="h-4" />
           <Shimmer w="w-10" h="h-3" />
@@ -129,7 +129,7 @@ export function ChatListSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div role="status" aria-label="Loading conversations...">
       {/* Search bar */}
-      <div className="px-4 py-3 border-b-2 border-[#E0E0E0]">
+      <div className="border-b-2 border-[#E0E0E0] px-4 py-3">
         <Shimmer h="h-10" className="border-2 border-[#E0E0E0]" />
       </div>
 
@@ -146,12 +146,12 @@ export function ChatListSkeleton({ count = 6 }: { count?: number }) {
 export function ChatBubbleSkeleton({ fromMe = false }: { fromMe?: boolean }) {
   return (
     <div
-      className={cn("flex mb-3", fromMe ? "justify-end" : "justify-start")}
+      className={cn("mb-3 flex", fromMe ? "justify-end" : "justify-start")}
       aria-hidden="true"
     >
       <div
         className={cn(
-          "border-2 border-[#E0E0E0] p-3 max-w-[70%] space-y-2",
+          "max-w-[70%] space-y-2 border-2 border-[#E0E0E0] p-3",
           fromMe ? "bg-white" : "bg-[#F8F8F8]",
         )}
       >
@@ -165,7 +165,7 @@ export function ChatBubbleSkeleton({ fromMe = false }: { fromMe?: boolean }) {
 
 export function ChatMessagesSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="px-4 py-2 space-y-1" role="status" aria-label="Loading messages...">
+    <div className="space-y-1 px-4 py-2" role="status" aria-label="Loading messages...">
       {Array.from({ length: count }, (_, i) => (
         <ChatBubbleSkeleton key={i} fromMe={i % 3 === 0} />
       ))}
@@ -177,7 +177,11 @@ export function ChatMessagesSkeleton({ count = 8 }: { count?: number }) {
 
 export function ProfilePageSkeleton() {
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4" role="status" aria-label="Loading profile...">
+    <div
+      className="mx-auto max-w-md space-y-4 p-4"
+      role="status"
+      aria-label="Loading profile..."
+    >
       {/* Avatar + name */}
       <div className="flex items-center gap-4">
         <Shimmer w="w-20" h="h-20" className="flex-shrink-0 border-2 border-[#E0E0E0]" />
@@ -193,7 +197,7 @@ export function ProfilePageSkeleton() {
 
       {/* Info cards */}
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="border-2 border-[#E0E0E0] p-4 space-y-2">
+        <div key={i} className="space-y-2 border-2 border-[#E0E0E0] p-4">
           <div className="flex items-center gap-2">
             <Shimmer w="w-5" h="h-5" rounded />
             <Shimmer w="w-28" h="h-4" />
@@ -228,9 +232,13 @@ export function MatchListSkeleton({ count = 4 }: { count?: number }) {
 
 export function PremiumPageSkeleton() {
   return (
-    <div className="max-w-md mx-auto p-4 space-y-6" role="status" aria-label="Loading plans...">
+    <div
+      className="mx-auto max-w-md space-y-6 p-4"
+      role="status"
+      aria-label="Loading plans..."
+    >
       {/* Header */}
-      <div className="text-center space-y-2">
+      <div className="space-y-2 text-center">
         <Shimmer w="w-10" h="h-10" rounded className="mx-auto" />
         <Shimmer w="w-48" h="h-6" className="mx-auto" />
         <Shimmer w="w-64" h="h-3" className="mx-auto" />
@@ -241,7 +249,7 @@ export function PremiumPageSkeleton() {
 
       {/* Plan cards */}
       {[1, 2, 3].map((i) => (
-        <div key={i} className="border-2 border-[#E0E0E0] p-4 space-y-3">
+        <div key={i} className="space-y-3 border-2 border-[#E0E0E0] p-4">
           <div className="flex items-center justify-between">
             <Shimmer w="w-20" h="h-5" />
             <Shimmer w="w-16" h="h-4" />
@@ -280,19 +288,163 @@ export function GenericSkeleton({
       {avatar && (
         <div className="flex items-center gap-3">
           <Shimmer w="w-10" h="h-10" rounded />
-          <div className="space-y-2 flex-1">
+          <div className="flex-1 space-y-2">
             <Shimmer w="w-32" h="h-4" />
             <Shimmer w="w-20" h="h-3" />
           </div>
         </div>
       )}
       {Array.from({ length: rows }, (_, i) => (
-        <Shimmer
-          key={i}
-          w={i === rows - 1 ? "w-3/4" : "w-full"}
-          h="h-3"
-        />
+        <Shimmer key={i} w={i === rows - 1 ? "w-3/4" : "w-full"} h="h-3" />
       ))}
+      <span className="sr-only">Loading…</span>
+    </div>
+  );
+}
+
+// ─── Settings Page Skeleton ──────────────────────────────────────────
+
+export function SettingsPageSkeleton() {
+  return (
+    <div
+      className="mx-auto max-w-md space-y-4 p-4"
+      role="status"
+      aria-label="Loading settings..."
+    >
+      {/* Header */}
+      <Shimmer w="w-32" h="h-6" />
+
+      {/* Settings sections */}
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="space-y-3 border-2 border-[#E0E0E0] p-4">
+          <Shimmer w="w-28" h="h-4" />
+          {[1, 2, 3].map((j) => (
+            <div key={j} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shimmer w="w-5" h="h-5" />
+                <Shimmer w="w-32" h="h-3" />
+              </div>
+              <Shimmer w="w-10" h="h-5" />
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {/* Logout button */}
+      <Shimmer h="h-12" className="border-2 border-[#E0E0E0]" />
+      <span className="sr-only">Loading…</span>
+    </div>
+  );
+}
+
+// ─── Onboarding Skeleton ─────────────────────────────────────────────
+
+export function OnboardingSkeleton() {
+  return (
+    <div className="mx-auto max-w-md space-y-6 p-6" role="status" aria-label="Loading...">
+      {/* Progress bar */}
+      <Shimmer h="h-2" className="border border-[#E0E0E0]" />
+
+      {/* Heading */}
+      <div className="space-y-2 text-center">
+        <Shimmer w="w-48" h="h-6" className="mx-auto" />
+        <Shimmer w="w-64" h="h-3" className="mx-auto" />
+      </div>
+
+      {/* Options grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-2 border-2 border-[#E0E0E0] p-4">
+            <Shimmer w="w-8" h="h-8" className="mx-auto" />
+            <Shimmer w="w-20" h="h-3" className="mx-auto" />
+          </div>
+        ))}
+      </div>
+
+      {/* CTA button */}
+      <Shimmer h="h-12" className="border-2 border-[#E0E0E0]" />
+      <span className="sr-only">Loading…</span>
+    </div>
+  );
+}
+
+// ─── Verify Page Skeleton ────────────────────────────────────────────
+
+export function VerifyPageSkeleton() {
+  return (
+    <div
+      className="mx-auto max-w-md space-y-4 p-4"
+      role="status"
+      aria-label="Loading verification..."
+    >
+      {/* Icon + heading */}
+      <div className="space-y-3 text-center">
+        <Shimmer w="w-16" h="h-16" className="mx-auto border-2 border-[#E0E0E0]" />
+        <Shimmer w="w-40" h="h-5" className="mx-auto" />
+        <Shimmer w="w-56" h="h-3" className="mx-auto" />
+      </div>
+
+      {/* Step cards */}
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3 border-2 border-[#E0E0E0] p-4">
+          <Shimmer w="w-8" h="h-8" />
+          <div className="flex-1 space-y-1">
+            <Shimmer w="w-32" h="h-4" />
+            <Shimmer w="w-48" h="h-3" />
+          </div>
+        </div>
+      ))}
+
+      {/* CTA */}
+      <Shimmer h="h-12" className="border-2 border-[#E0E0E0]" />
+      <span className="sr-only">Loading…</span>
+    </div>
+  );
+}
+
+// ─── Discovery Feed Skeleton (card stack) ────────────────────────────
+
+export function DiscoveryFeedSkeleton() {
+  return (
+    <div
+      className="mx-auto max-w-md space-y-4"
+      role="status"
+      aria-label="Loading discovery feed..."
+    >
+      {/* Daily limit counter */}
+      <div className="px-4 pt-3">
+        <Shimmer w="w-36" h="h-3" />
+      </div>
+
+      {/* Perfect match section */}
+      <div className="px-4">
+        <Shimmer w="w-48" h="h-5" className="mb-2" />
+        <div className="border-2 border-[#E0E0E0] shadow-[4px_4px_0px_#E0E0E0]">
+          <Shimmer h="h-40" className="border-b-2 border-[#E0E0E0]" />
+          <div className="space-y-2 p-3">
+            <Shimmer w="w-32" h="h-5" />
+            <Shimmer w="w-20" h="h-3" />
+          </div>
+        </div>
+      </div>
+
+      {/* Quick filters */}
+      <div className="flex gap-2 overflow-hidden px-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Shimmer
+            key={i}
+            w="w-24"
+            h="h-8"
+            className="flex-shrink-0 border border-[#E0E0E0]"
+          />
+        ))}
+      </div>
+
+      {/* Profile cards */}
+      <div className="space-y-4 px-4">
+        <ProfileCardSkeleton />
+        <ProfileCardSkeleton />
+      </div>
       <span className="sr-only">Loading…</span>
     </div>
   );
@@ -304,10 +456,10 @@ export function PageSkeleton() {
   return (
     <div className="min-h-screen bg-white">
       {/* Fake top bar */}
-      <div className="h-14 bg-[#212121] border-b-[3px] border-white flex items-center px-4">
+      <div className="flex h-14 items-center border-b-[3px] border-white bg-[#212121] px-4">
         <Shimmer w="w-24" h="h-4" className="bg-[#424242]" />
       </div>
-      <div className="max-w-md mx-auto p-4">
+      <div className="mx-auto max-w-md p-4">
         <GenericSkeleton rows={5} avatar />
       </div>
     </div>

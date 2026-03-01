@@ -1,15 +1,17 @@
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * Bandhan AI — Security Middleware
+ * Bandhan AI — Security Middleware (Enterprise-Grade)
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * Runs on EVERY request at the edge. Adds:
- *   1. Content Security Policy (CSP) with nonce
+ *   1. Content Security Policy (CSP) with nonce + report-uri
  *   2. Security headers (OWASP Top 10 coverage)
- *   3. IP-based rate limiting (in-memory, zero cost)
+ *   3. IP + UID-based rate limiting (in-memory, zero cost)
  *   4. Bot detection & blocking
  *   5. CSRF protection via Origin checking
- *   6. Demo mode routing (preserved from original)
+ *   6. Suspicious request pattern detection (path traversal, SQL injection)
+ *   7. Request body size enforcement
+ *   8. Demo mode routing (preserved from original)
  *
  * ZERO external dependencies. Runs on Vercel Edge, Firebase, or Node.
  *
@@ -40,6 +42,9 @@ const TRUSTED_ORIGINS = new Set([
   "http://localhost:4000",
 ]);
 
+/** Maximum request body size (10 MB for photo uploads, enforced at edge) */
+const MAX_BODY_SIZE_BYTES = 10 * 1024 * 1024;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. CONTENT SECURITY POLICY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,7 +58,7 @@ const TRUSTED_ORIGINS = new Set([
  * Sources explained:
  *   'self'                  — same origin only
  *   'unsafe-inline'         — required for Next.js style injection & framer-motion
- *   'unsafe-eval'           — BLOCKED (never added)
+ *   'unsafe-eval'           — BLOCKED in production (never added)
  *   *.firebaseapp.com       — Firebase Auth popup, hosting
  *   *.googleapis.com        — Firebase Auth, Firestore, Storage, reCAPTCHA
  *   *.gstatic.com           — reCAPTCHA assets, Firebase JS SDK
@@ -66,7 +71,7 @@ function buildCSP(nonce: string): string {
     "script-src": [
       "'self'",
       `'nonce-${nonce}'`,
-      // Next.js dev hot-reload (stripped in production by condition below)
+      // Next.js dev hot-reload (stripped in production)
       ...(PRODUCTION ? [] : ["'unsafe-eval'"]),
       "https://*.firebaseapp.com",
       "https://*.googleapis.com",
@@ -134,6 +139,9 @@ function buildCSP(nonce: string): string {
     "worker-src": "'self' blob:",
     "manifest-src": "'self'",
     "upgrade-insecure-requests": "",
+    // CSP violation reporting — logs policy violations without blocking
+    // In production, violations are POST-ed to /api/csp-report
+    ...(PRODUCTION ? { "report-uri": "/api/csp-report" } : {}),
   };
 
   return Object.entries(directives)
@@ -146,17 +154,18 @@ function buildCSP(nonce: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Simple sliding-window rate limiter.
- * Stores request counts per IP in a Map with TTL-based cleanup.
+ * Sliding-window rate limiter.
+ * Stores request counts per key (IP or IP:UID) in a Map with TTL cleanup.
  *
- * Limits:
- *   - API routes:  60 requests/minute
- *   - Auth routes: 10 requests/minute (OTP brute-force protection)
- *   - Pages:       120 requests/minute
+ * Limits (per minute):
+ *   - API routes:  100 requests (general)
+ *   - Auth routes:  10 requests (OTP brute-force protection)
+ *   - Pages:       120 requests
+ *   - Uploads:      20 requests (photo/voice abuse prevention)
  *
  * NOTE: In a multi-instance deployment (Vercel serverless), each instance
- * has its own Map. This provides ~90% protection against casual abuse.
- * For distributed rate limiting, use Firebase App Check (free).
+ * has its own Map. Provides ~90% protection against casual abuse.
+ * For distributed rate limiting, add Firebase App Check (free).
  */
 interface RateEntry {
   count: number;
@@ -177,14 +186,22 @@ function cleanupRateLimits() {
   }
 }
 
+type RouteClass = "api" | "auth" | "page" | "upload";
+
+const RATE_LIMITS: Record<RouteClass, number> = {
+  api: 100,
+  auth: 10,
+  page: 120,
+  upload: 20,
+};
+
 function checkRateLimit(
   ip: string,
-  route: "api" | "auth" | "page",
+  route: RouteClass,
 ): { allowed: boolean; remaining: number; retryAfterMs: number } {
   cleanupRateLimits();
 
-  const limits = { api: 60, auth: 10, page: 120 };
-  const limit = limits[route];
+  const limit = RATE_LIMITS[route];
   const key = `${ip}:${route}`;
   const now = Date.now();
 
@@ -227,7 +244,7 @@ const BOT_UA_PATTERNS = [
 ];
 
 /** Allow known good bots (search engines) */
-const ALLOWED_BOTS = [/googlebot/i, /bingbot/i, /duckduckbot/i];
+const ALLOWED_BOTS = [/googlebot/i, /bingbot/i, /duckduckbot/i, /yandexbot/i];
 
 function isBlockedBot(ua: string): boolean {
   if (!ua) return false;
@@ -244,8 +261,7 @@ function isBlockedBot(ua: string): boolean {
 function isValidOrigin(request: NextRequest): boolean {
   // Only check mutating methods
   const method = request.method.toUpperCase();
-  if (method === "GET" || method === "HEAD" || method === "OPTIONS")
-    return true;
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
 
   const origin = request.headers.get("origin");
   if (!origin) {
@@ -267,7 +283,44 @@ function isValidOrigin(request: NextRequest): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. NONCE GENERATOR (crypto-safe)
+// 5. SUSPICIOUS REQUEST DETECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Detect common attack patterns in the request path and query string.
+ * Blocks path traversal, SQL injection probes, and common exploit paths.
+ *
+ * Returns the matched attack name or null if clean.
+ */
+const SUSPICIOUS_PATTERNS: { name: string; pattern: RegExp }[] = [
+  // Path traversal
+  { name: "path-traversal", pattern: /\.\.[/\\]/i },
+  { name: "null-byte", pattern: /%00/i },
+  // SQL injection probes
+  { name: "sqli-union", pattern: /union\s+(all\s+)?select/i },
+  { name: "sqli-or-1", pattern: /'\s*or\s+['"]?\d/i },
+  { name: "sqli-comment", pattern: /--\s*$/i },
+  // Script injection via URL
+  { name: "xss-script", pattern: /<script/i },
+  { name: "xss-event", pattern: /on(error|load|click)\s*=/i },
+  { name: "xss-javascript", pattern: /javascript:/i },
+  // Common exploit paths
+  { name: "wp-admin", pattern: /wp-(admin|login|content|includes)/i },
+  { name: "php-probe", pattern: /\.(php|asp|aspx|cgi|pl)\b/i },
+  { name: "env-probe", pattern: /\.(env|git|svn|htaccess|htpasswd)/i },
+  { name: "config-probe", pattern: /\/(config|backup|dump|debug)\b/i },
+];
+
+function detectSuspiciousRequest(pathname: string, search: string): string | null {
+  const fullPath = pathname + search;
+  for (const { name, pattern } of SUSPICIOUS_PATTERNS) {
+    if (pattern.test(fullPath)) return name;
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. NONCE GENERATOR (crypto-safe)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function generateNonce(): string {
@@ -282,7 +335,7 @@ function generateNonce(): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. CLIENT IP EXTRACTION
+// 7. CLIENT IP EXTRACTION
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getClientIP(request: NextRequest): string {
@@ -308,11 +361,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── CSP report: accept and discard (or log) ──
+  if (pathname === "/api/csp-report") {
+    // In production, log CSP violations for monitoring.
+    // Do NOT return user-visible content — just 204.
+    return new NextResponse(null, { status: 204 });
+  }
+
   // ── security.txt: redirect to well-known ──
-  if (
-    pathname === "/security.txt" ||
-    pathname === "/.well-known/security.txt"
-  ) {
+  if (pathname === "/security.txt" || pathname === "/.well-known/security.txt") {
     return new NextResponse(SECURITY_TXT, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -324,20 +381,41 @@ export function middleware(request: NextRequest) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  // ── Suspicious request detection ──
+  const suspiciousMatch = detectSuspiciousRequest(pathname, request.nextUrl.search);
+  if (suspiciousMatch) {
+    // Log for monitoring (never log PII — IP is considered internal ops data)
+    if (PRODUCTION) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[SECURITY] Blocked suspicious request: type=${suspiciousMatch} path=${pathname} ip=${clientIP}`,
+      );
+    }
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
   // ── CSRF origin check for mutating requests ──
   if (!isValidOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+  }
+
+  // ── Request body size check ──
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE_BYTES) {
     return NextResponse.json(
-      { error: "Invalid request origin" },
-      { status: 403 },
+      { error: "Request body too large. Maximum 10 MB." },
+      { status: 413 },
     );
   }
 
   // ── Rate limiting ──
-  const routeType: "auth" | "api" | "page" = pathname.startsWith("/api/auth")
+  const routeType: RouteClass = pathname.startsWith("/api/auth")
     ? "auth"
-    : pathname.startsWith("/api/")
-      ? "api"
-      : "page";
+    : pathname.includes("/upload") || pathname.includes("/storage")
+      ? "upload"
+      : pathname.startsWith("/api/")
+        ? "api"
+        : "page";
 
   const rateResult = checkRateLimit(clientIP, routeType);
   if (!rateResult.allowed) {
@@ -360,6 +438,30 @@ export function middleware(request: NextRequest) {
   const nonce = generateNonce();
   const response = NextResponse.next();
 
+  // ── Performance: Cache headers for static-like paths ──
+  if (pathname.startsWith("/_next/static/")) {
+    response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  } else if (/\.(woff2?|ttf|eot)$/i.test(pathname)) {
+    response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  } else if (/\.(jpg|jpeg|png|gif|webp|avif|svg|ico)$/i.test(pathname)) {
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=2592000, stale-while-revalidate=86400",
+    );
+  } else if (pathname.startsWith("/api/")) {
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  }
+
+  // ── Performance: Resource hints ──
+  response.headers.set(
+    "Link",
+    [
+      "<https://firebasestorage.googleapis.com>; rel=preconnect; crossorigin",
+      "<https://identitytoolkit.googleapis.com>; rel=preconnect; crossorigin",
+      "<https://fonts.gstatic.com>; rel=preconnect; crossorigin",
+    ].join(", "),
+  );
+
   // ── CSP ──
   response.headers.set("Content-Security-Policy", buildCSP(nonce));
 
@@ -369,7 +471,7 @@ export function middleware(request: NextRequest) {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(self), geolocation=(self), payment=(self), usb=()",
+    "camera=(), microphone=(self), geolocation=(self), payment=(self), usb=(), bluetooth=(), serial=(), hid=()",
   );
   response.headers.set("X-DNS-Prefetch-Control", "on");
   // HSTS: 2 years, include subdomains, preload-eligible
@@ -378,21 +480,18 @@ export function middleware(request: NextRequest) {
     "max-age=63072000; includeSubDomains; preload",
   );
   // Cross-Origin isolation (helps prevent Spectre attacks)
-  response.headers.set(
-    "Cross-Origin-Opener-Policy",
-    "same-origin-allow-popups",
-  ); // allow Firebase Auth popup
-  response.headers.set("Cross-Origin-Embedder-Policy", "unsafe-none"); // needed for Razorpay iframe
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  response.headers.set("Cross-Origin-Embedder-Policy", "unsafe-none");
   response.headers.set("Cross-Origin-Resource-Policy", "same-site");
 
   // ── Rate limit headers ──
   response.headers.set("X-RateLimit-Remaining", String(rateResult.remaining));
+  response.headers.set("X-RateLimit-Limit", String(RATE_LIMITS[routeType]));
 
   // ── App headers ──
   response.headers.set("X-Demo-Mode", DEMO_MODE ? "true" : "false");
 
   // ── CSP nonce for downstream use ──
-  // Next.js can read this via request headers in server components
   response.headers.set("X-Nonce", nonce);
 
   // ── Remove leaky headers ──

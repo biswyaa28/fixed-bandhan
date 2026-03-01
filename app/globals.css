@@ -543,19 +543,11 @@ select:disabled {
 
 /* Halftone dot pattern */
 .halftone {
-  background-image: radial-gradient(
-    circle,
-    var(--color-black) 0.5px,
-    transparent 0.5px
-  );
+  background-image: radial-gradient(circle, var(--color-black) 0.5px, transparent 0.5px);
   background-size: 4px 4px;
 }
 .halftone-light {
-  background-image: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 0.08) 0.5px,
-    transparent 0.5px
-  );
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.08) 0.5px, transparent 0.5px);
   background-size: 8px 8px;
 }
 
@@ -681,6 +673,52 @@ select:disabled {
 /* ══════════════════════════════════════════════════════════════════════
    ANIMATIONS & KEYFRAMES
    ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Perfect Match Gold Pulse ─────────────────────────────────────────── */
+@keyframes gold-pulse {
+  0%,
+  100% {
+    box-shadow:
+      4px 4px 0px #000000,
+      0 0 0px rgba(255, 215, 0, 0);
+  }
+  50% {
+    box-shadow:
+      4px 4px 0px #000000,
+      0 0 12px rgba(255, 215, 0, 0.4);
+  }
+}
+.perfect-match-pulse {
+  animation: gold-pulse 2.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .perfect-match-pulse {
+    animation: none;
+  }
+}
+
+/* ── Safety Button Red Pulse ──────────────────────────────────────────── */
+@keyframes safety-pulse {
+  0%,
+  100% {
+    box-shadow:
+      3px 3px 0px #000000,
+      0 0 0px rgba(239, 71, 111, 0);
+  }
+  50% {
+    box-shadow:
+      3px 3px 0px #000000,
+      0 0 10px rgba(239, 71, 111, 0.5);
+  }
+}
+.safety-pulse-btn {
+  animation: safety-pulse 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .safety-pulse-btn {
+    animation: none;
+  }
+}
 
 @keyframes page-enter {
   0% {

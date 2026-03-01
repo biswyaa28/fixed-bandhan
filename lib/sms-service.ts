@@ -154,9 +154,7 @@ function checkRateLimit(identifier: string): {
  *   matchDetails: { name: 'Rahul Sharma' },
  * });
  */
-export async function sendSafetySMS(
-  options: SafetySMSOptions,
-): Promise<SMSResult> {
+export async function sendSafetySMS(options: SafetySMSOptions): Promise<SMSResult> {
   const {
     phoneNumber,
     language = "en",
@@ -313,8 +311,7 @@ function isValidIndianPhoneNumber(phoneNumber: string): boolean {
  */
 function generateTrackingId(): string {
   return (
-    Math.random().toString(36).substring(2, 10) +
-    Date.now().toString(36).substring(4)
+    Math.random().toString(36).substring(2, 10) + Date.now().toString(36).substring(4)
   );
 }
 
@@ -410,7 +407,8 @@ export function getSmsCharacterCount(message: string): {
   charactersPerSegment: number;
 } {
   // Check if message contains non-GSM characters (Hindi = Unicode)
-  const hasUnicode = /[^\u0000-\u007F]/.test(message);
+  // GSM-7 includes: tab (0x09), newline (0x0A), carriage return (0x0D), and printable ASCII (0x20-0x7F)
+  const hasUnicode = !/^[\t\n\r\x20-\x7F]*$/.test(message);
 
   const charactersPerSegment = hasUnicode ? 70 : 160;
   const segments = Math.ceil(message.length / charactersPerSegment);

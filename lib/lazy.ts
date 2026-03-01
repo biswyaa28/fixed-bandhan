@@ -43,6 +43,10 @@ import {
   ChatListSkeleton,
   ProfilePageSkeleton,
   PremiumPageSkeleton,
+  SettingsPageSkeleton,
+  DiscoveryFeedSkeleton,
+  OnboardingSkeleton,
+  VerifyPageSkeleton,
   PageSkeleton,
 } from "@/components/SkeletonLoader";
 
@@ -63,9 +67,7 @@ export const LazyAnimatePresence = dynamic(
 export const LazyReactQueryDevtools = dynamic(
   () =>
     process.env.NODE_ENV === "development"
-      ? import("@tanstack/react-query-devtools").then(
-          (mod) => mod.ReactQueryDevtools,
-        )
+      ? import("@tanstack/react-query-devtools").then((mod) => mod.ReactQueryDevtools)
       : Promise.resolve(() => null),
   { ssr: false },
 );
@@ -77,10 +79,11 @@ export const LazyReactQueryDevtools = dynamic(
  * Only loads when user navigates to /matches.
  */
 export const LazyDiscoveryFeed = dynamic(
-  () => import("@/components/DiscoveryFeed").catch(() => {
-    // Fallback if component doesn't exist yet
-    return { default: () => null };
-  }),
+  () =>
+    import("@/components/DiscoveryFeed").catch(() => {
+      // Fallback if component doesn't exist yet
+      return { default: () => null };
+    }),
   {
     loading: () => ProfileCardSkeleton(),
     ssr: false,
@@ -93,9 +96,10 @@ export const LazyDiscoveryFeed = dynamic(
  * Premium upsell modal — only loads when user hits a limit.
  */
 export const LazyPremiumModal = dynamic(
-  () => import("@/components/PremiumUpsellModal").catch(() => {
-    return { default: () => null };
-  }),
+  () =>
+    import("@/components/PremiumUpsellModal").catch(() => {
+      return { default: () => null };
+    }),
   { ssr: false },
 );
 
@@ -103,9 +107,10 @@ export const LazyPremiumModal = dynamic(
  * Safety modal — only loads when user taps safety button.
  */
 export const LazySafetyModal = dynamic(
-  () => import("@/components/SafetyModal").catch(() => {
-    return { default: () => null };
-  }),
+  () =>
+    import("@/components/SafetyModal").catch(() => {
+      return { default: () => null };
+    }),
   { ssr: false },
 );
 
@@ -113,9 +118,10 @@ export const LazySafetyModal = dynamic(
  * Profile modal — only loads when user taps on a profile card.
  */
 export const LazyProfileModal = dynamic(
-  () => import("@/components/ProfileModal").catch(() => {
-    return { default: () => null };
-  }),
+  () =>
+    import("@/components/ProfileModal").catch(() => {
+      return { default: () => null };
+    }),
   { ssr: false },
 );
 
@@ -123,9 +129,10 @@ export const LazyProfileModal = dynamic(
  * Notification center — only loads when user taps bell icon.
  */
 export const LazyNotificationCenter = dynamic(
-  () => import("@/components/NotificationCenter").catch(() => {
-    return { default: () => null };
-  }),
+  () =>
+    import("@/components/NotificationCenter").catch(() => {
+      return { default: () => null };
+    }),
   { ssr: false },
 );
 
@@ -134,8 +141,60 @@ export const LazyNotificationCenter = dynamic(
  * Heavy component: includes Web Audio API + waveform rendering.
  */
 export const LazyVoiceRecorder = dynamic(
-  () => import("@/components/VoiceNoteRecorder").catch(() => {
-    return { default: () => null };
-  }),
+  () =>
+    import("@/components/VoiceNoteRecorder").catch(() => {
+      return { default: () => null };
+    }),
+  { ssr: false },
+);
+
+// ─── Additional route-level lazy splits ─────────────────────────────
+
+/**
+ * Settings page — only loads when user navigates to /settings.
+ * Contains privacy toggles, language selector, premium banner.
+ */
+export const LazySettingsMenu = dynamic(
+  () =>
+    import("@/components/settings/SettingsMenu").catch(() => {
+      return { default: () => null };
+    }),
+  {
+    loading: () => SettingsPageSkeleton(),
+    ssr: false,
+  },
+);
+
+/**
+ * Photo verification flow — only loads when user taps "Verify".
+ * Contains camera capture, pose matching, AI review.
+ */
+export const LazyPhotoVerification = dynamic(
+  () =>
+    import("@/components/modals/PhotoVerificationModal").catch(() => {
+      return { default: () => null };
+    }),
+  { ssr: false },
+);
+
+/**
+ * Success tracker modal — only loads after 7 days of chatting.
+ */
+export const LazySuccessTracker = dynamic(
+  () =>
+    import("@/components/modals/SuccessTrackerModal").catch(() => {
+      return { default: () => null };
+    }),
+  { ssr: false },
+);
+
+/**
+ * Appreciate modal — only loads on long-press of profile element.
+ */
+export const LazyAppreciateModal = dynamic(
+  () =>
+    import("@/components/modals/AppreciateModal").catch(() => {
+      return { default: () => null };
+    }),
   { ssr: false },
 );

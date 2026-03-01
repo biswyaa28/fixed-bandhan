@@ -163,9 +163,7 @@ export function shouldReduceData(): boolean {
 export function shouldReduceMotion(): boolean {
   if (typeof window === "undefined") return false;
 
-  const prefersReduced = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   return prefersReduced || shouldReduceData();
 }
@@ -224,13 +222,7 @@ export function initPerfMonitoring(
     // Log in development
     if (process.env.NODE_ENV === "development") {
       const color =
-        name === "cls"
-          ? value < 0.1
-            ? "green"
-            : "red"
-          : value < 2500
-            ? "green"
-            : "red";
+        name === "cls" ? (value < 0.1 ? "green" : "red") : value < 2500 ? "green" : "red";
       // eslint-disable-next-line no-console
       console.log(
         `%c[Perf] ${name.toUpperCase()}: ${name === "cls" ? value.toFixed(4) : Math.round(value)}${name === "cls" ? "" : "ms"}`,
@@ -281,6 +273,25 @@ export function initPerfMonitoring(
       }
     });
     fidObserver.observe({ type: "first-input", buffered: true });
+
+    // ── INP (Interaction to Next Paint) ──
+    // INP replaces FID as the responsiveness Core Web Vital.
+    // Captures the worst-case interaction latency across the page lifecycle.
+    let inpValue = 0;
+    try {
+      const inpObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const duration = (entry as any).duration ?? 0;
+          if (duration > inpValue) {
+            inpValue = duration;
+            report("inp", inpValue);
+          }
+        }
+      });
+      inpObserver.observe({ type: "event", buffered: true });
+    } catch {
+      // event timing not supported — graceful degradation
+    }
 
     // ── TTFB ──
     const navEntry = performance.getEntriesByType(
@@ -341,4 +352,230 @@ export function usePerformanceInit() {
   if (typeof window !== "undefined" && !_initialized) {
     initPerfMonitoring();
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API Response Time Tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ApiTimingEntry {
+  url: string;
+  method: string;
+  durationMs: number;
+  status: number;
+  timestamp: number;
+}
+
+/** Circular buffer of last 50 API calls for P95 calculation */
+const apiTimings: ApiTimingEntry[] = [];
+const API_TIMING_BUFFER_SIZE = 50;
+
+/**
+ * Track an API call's response time.
+ * Call this after every fetch/axios request.
+ *
+ * @example
+ *   const start = performance.now();
+ *   const res = await fetch('/api/matches');
+ *   trackApiTiming('/api/matches', 'GET', performance.now() - start, res.status);
+ */
+export function trackApiTiming(
+  url: string,
+  method: string,
+  durationMs: number,
+  status: number,
+): void {
+  const entry: ApiTimingEntry = {
+    url,
+    method: method.toUpperCase(),
+    durationMs: Math.round(durationMs),
+    status,
+    timestamp: Date.now(),
+  };
+
+  apiTimings.push(entry);
+  if (apiTimings.length > API_TIMING_BUFFER_SIZE) {
+    apiTimings.shift();
+  }
+
+  // Warn on slow APIs (>500ms p95 target)
+  if (process.env.NODE_ENV === "development" && durationMs > 500) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `%c[Perf] Slow API: ${method} ${url} took ${Math.round(durationMs)}ms (target: <500ms)`,
+      "color: orange; font-weight: bold",
+    );
+  }
+}
+
+/**
+ * Get API performance stats: average, p50, p95, p99.
+ */
+export function getApiTimingStats(): {
+  count: number;
+  avgMs: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  slowestUrl: string;
+} {
+  if (apiTimings.length === 0) {
+    return { count: 0, avgMs: 0, p50Ms: 0, p95Ms: 0, p99Ms: 0, slowestUrl: "" };
+  }
+
+  const sorted = [...apiTimings].sort((a, b) => a.durationMs - b.durationMs);
+  const n = sorted.length;
+  const sum = sorted.reduce((s, e) => s + e.durationMs, 0);
+
+  const percentile = (p: number) => sorted[Math.min(Math.floor(n * p), n - 1)].durationMs;
+
+  const slowest = sorted[n - 1];
+
+  return {
+    count: n,
+    avgMs: Math.round(sum / n),
+    p50Ms: percentile(0.5),
+    p95Ms: percentile(0.95),
+    p99Ms: percentile(0.99),
+    slowestUrl: `${slowest.method} ${slowest.url}`,
+  };
+}
+
+/**
+ * Wrap fetch() to automatically track API response times.
+ * Drop-in replacement for global fetch.
+ *
+ * @example
+ *   const res = await trackedFetch('/api/matches');
+ */
+export async function trackedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  const method = init?.method ?? "GET";
+
+  const start = performance.now();
+  try {
+    const response = await fetch(input, init);
+    trackApiTiming(url, method, performance.now() - start, response.status);
+    return response;
+  } catch (err) {
+    trackApiTiming(url, method, performance.now() - start, 0); // 0 = network error
+    throw err;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bundle Size Monitoring
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Budget targets in KB (gzipped) */
+export const BUNDLE_BUDGETS = {
+  /** Critical initial JS (first-load) */
+  initialJs: 150,
+  /** Any single route chunk */
+  routeChunk: 80,
+  /** Total CSS */
+  css: 30,
+  /** Single image (optimised) */
+  image: 100,
+} as const;
+
+/**
+ * Measure JS transfer sizes from the PerformanceObserver resource timing API.
+ * Returns total JS size loaded so far in KB.
+ *
+ * NOTE: transferSize is only available for same-origin resources or those
+ * with Timing-Allow-Origin headers.
+ */
+export function measureJsBundleSize(): {
+  totalKb: number;
+  entryCount: number;
+  overBudget: boolean;
+  entries: { name: string; sizeKb: number }[];
+} {
+  if (typeof performance === "undefined") {
+    return { totalKb: 0, entryCount: 0, overBudget: false, entries: [] };
+  }
+
+  const resources = performance.getEntriesByType(
+    "resource",
+  ) as PerformanceResourceTiming[];
+  const jsResources = resources.filter(
+    (r) => r.name.endsWith(".js") || r.name.includes("/_next/static/chunks/"),
+  );
+
+  const entries = jsResources
+    .map((r) => ({
+      name: r.name.split("/").pop() ?? r.name,
+      sizeKb: Math.round((r.transferSize || r.encodedBodySize || 0) / 1024),
+    }))
+    .filter((e) => e.sizeKb > 0)
+    .sort((a, b) => b.sizeKb - a.sizeKb);
+
+  const totalKb = entries.reduce((sum, e) => sum + e.sizeKb, 0);
+
+  return {
+    totalKb,
+    entryCount: entries.length,
+    overBudget: totalKb > BUNDLE_BUDGETS.initialJs,
+    entries: entries.slice(0, 10), // top 10 largest
+  };
+}
+
+/**
+ * Log a full performance report: Web Vitals + API timings + bundle size.
+ * Call in dev tools console: `import('/lib/performance').then(m => m.logFullReport())`
+ */
+export function logFullReport(): void {
+  if (typeof window === "undefined") return;
+
+  // eslint-disable-next-line no-console
+  console.group(
+    "%c📊 Bandhan AI — Performance Report",
+    "font-size: 14px; font-weight: bold;",
+  );
+
+  // Web Vitals
+  logPerfSummary();
+
+  // API timings
+  const api = getApiTimingStats();
+  // eslint-disable-next-line no-console
+  console.log("\n%c🌐 API Response Times:", "font-weight: bold");
+  // eslint-disable-next-line no-console
+  console.table({
+    "Calls tracked": api.count,
+    "Avg (ms)": api.avgMs,
+    "P50 (ms)": api.p50Ms,
+    "P95 (ms)": api.p95Ms,
+    "P99 (ms)": api.p99Ms,
+    Slowest: api.slowestUrl,
+    "P95 Target": "< 500ms",
+    "P95 Pass": api.p95Ms <= 500 ? "✅" : "❌",
+  });
+
+  // Bundle size
+  const bundle = measureJsBundleSize();
+  // eslint-disable-next-line no-console
+  console.log("\n%c📦 Bundle Size:", "font-weight: bold");
+  // eslint-disable-next-line no-console
+  console.table({
+    "Total JS (KB)": bundle.totalKb,
+    "Chunks loaded": bundle.entryCount,
+    "Budget (KB)": BUNDLE_BUDGETS.initialJs,
+    "Within Budget": !bundle.overBudget ? "✅" : "❌",
+  });
+
+  if (bundle.entries.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log("\nTop 10 largest JS chunks:");
+    // eslint-disable-next-line no-console
+    console.table(bundle.entries);
+  }
+
+  // eslint-disable-next-line no-console
+  console.groupEnd();
 }

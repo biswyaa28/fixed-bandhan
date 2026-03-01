@@ -1,0 +1,111 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Bandhan AI — Umami Analytics Dockerfile (Standalone)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# This Dockerfile builds a standalone container for self-hosted Umami
+# analytics. Deploy to Railway (free tier), Render, or any Docker host.
+#
+# WHY SELF-HOSTED:
+#   • 100% privacy: No data sent to Google or any third party
+#   • DPDP Act 2023 compliance: Data stays in India (Railway Mumbai)
+#   • ZERO cost: Railway free tier = 500 hours/month, 1GB RAM
+#   • Full control: 90-day auto-deletion, IP anonymisation, no cookies
+#
+# DEPLOYMENT OPTIONS:
+#
+#   1. Railway (recommended — one-click)
+#      $ railway login
+#      $ railway init
+#      $ railway add plugin --plugin postgresql  # adds free Postgres
+#      $ railway up                               # deploys this Dockerfile
+#      URL: https://your-project.up.railway.app
+#
+#   2. Render (alternative — one-click)
+#      https://render.com/deploy?repo=https://github.com/umami-software/umami
+#
+#   3. Local / VPS
+#      $ docker build -t bandhan-umami -f Dockerfile.umami .
+#      $ docker run -d -p 3001:3000 \
+#          -e DATABASE_URL=postgresql://user:pass@host:5432/umami \
+#          -e APP_SECRET=your-secret-here \
+#          bandhan-umami
+#
+# AFTER DEPLOYMENT:
+#   1. Open https://your-umami-url and login (admin / umami)
+#   2. IMMEDIATELY change the admin password
+#   3. Add website: name="Bandhan AI", domain="bandhan.ai"
+#   4. Copy the Website ID into .env.local:
+#        NEXT_PUBLIC_UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#   5. Copy the host URL:
+#        NEXT_PUBLIC_UMAMI_HOST=https://your-umami-url.railway.app
+#
+# DATA RETENTION (90-day auto-delete):
+#   Set via Umami dashboard: Settings → Websites → Data retention → 90 days
+#   OR use the docker-compose.yml retention-cron service for external purge.
+#
+# ENVIRONMENT VARIABLES:
+#   DATABASE_URL        — PostgreSQL connection string (required)
+#   APP_SECRET          — Secret for session signing (required, change default!)
+#   DISABLE_LOGIN       — Set "true" to disable login page (not recommended)
+#   CLIENT_IP_HEADER    — Header for real IP (x-forwarded-for for proxied setups)
+#   HOSTNAME            — Bind address (default: 0.0.0.0)
+#   PORT                — Listen port (default: 3000, Railway sets this)
+#
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Stage 1: Build ─────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Clone Umami source (pinned to a known stable release)
+ARG UMAMI_VERSION=v2.12.1
+RUN apk add --no-cache git && \
+    git clone --depth 1 --branch ${UMAMI_VERSION} \
+      https://github.com/umami-software/umami.git . && \
+    rm -rf .git
+
+# Install dependencies
+RUN yarn install --frozen-lockfile --network-timeout 600000
+
+# Set database type to PostgreSQL (not MySQL)
+ENV DATABASE_TYPE=postgresql
+
+# Build the Next.js app
+RUN yarn build
+
+# ── Stage 2: Production ───────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Security: run as non-root user
+RUN addgroup --system --gid 1001 umami && \
+    adduser --system --uid 1001 umami
+
+# Copy built artifacts from builder
+COPY --from=builder /app/next.config.js ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/db ./db
+
+# Environment defaults
+ENV NODE_ENV=production
+ENV DATABASE_TYPE=postgresql
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Railway and Render set PORT via env var; Umami reads it automatically
+EXPOSE 3000
+
+# Switch to non-root user
+USER umami
+
+# Health check for container orchestrators
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD wget -q --spider http://localhost:3000/api/heartbeat || exit 1
+
+# Start Umami
+CMD ["yarn", "start"]

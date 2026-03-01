@@ -27,18 +27,19 @@ const variants = {
   ),
   secondary: cn(
     "bg-transparent text-black",
-    "border-[3px] border-black",
+    "border-2 border-black",
     "shadow-[4px_4px_0px_#000000]",
     "hover:bg-black hover:text-white",
     "hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#000000]",
     "active:!translate-x-[2px] active:!translate-y-[2px] active:!shadow-[inset_2px_2px_0px_rgba(0,0,0,0.2)]",
   ),
   outline: cn(
-    "bg-transparent text-[#424242]",
-    "border-2 border-dashed border-black",
-    "hover:bg-[#F8F8F8] hover:border-solid",
-    "hover:shadow-[2px_2px_0px_#000000]",
-    "active:!shadow-[inset_2px_2px_0px_rgba(0,0,0,0.2)]",
+    "bg-white text-black",
+    "border-2 border-black",
+    "shadow-[2px_2px_0px_#000000]",
+    "hover:bg-[#F8F8F8]",
+    "hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
+    "active:!translate-x-[2px] active:!translate-y-[2px] active:!shadow-[inset_2px_2px_0px_rgba(0,0,0,0.2)]",
   ),
   ghost: cn(
     "bg-transparent text-[#424242]",
@@ -108,8 +109,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const isDisabled = disabled || loading;
-    const isIconOnly =
-      size === "icon" || size === "icon-sm" || size === "icon-lg";
+    const isIconOnly = size === "icon" || size === "icon-sm" || size === "icon-lg";
 
     return (
       <button
@@ -119,12 +119,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           // Base
           "relative inline-flex items-center justify-center",
           "font-heading font-bold leading-tight",
-          "uppercase select-none cursor-pointer",
+          "cursor-pointer select-none uppercase",
           "rounded-[4px]",
           // Smooth transition for hover press-in
           "transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]",
           // Focus: double outline with white gap
-          "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_#FFFFFF,0_0_0_6px_#000000]",
+          "focus-visible:shadow-[0_0_0_3px_#FFFFFF,0_0_0_6px_#000000] focus-visible:outline-none",
           // Variant
           variants[variant],
           // Size
@@ -133,7 +133,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           fullWidth && "w-full",
           // Disabled
           isDisabled &&
-            "!bg-[#F8F8F8] !text-[#9E9E9E] !border-dashed !border-[#9E9E9E] !shadow-none !cursor-not-allowed !translate-x-0 !translate-y-0",
+            "!translate-x-0 !translate-y-0 !cursor-not-allowed !border-dashed !border-[#9E9E9E] !bg-[#F8F8F8] !text-[#9E9E9E] !shadow-none",
           className,
         )}
         {...props}
@@ -141,14 +141,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {/* Loading pixel block */}
         {loading && (
           <span
-            className="w-4 h-4 bg-current animate-pixel-spin inline-block"
+            className="inline-block h-4 w-4 animate-pixel-spin bg-current"
             aria-hidden="true"
           />
         )}
 
         {/* Left icon */}
         {!loading && leftIcon && (
-          <span className="flex-shrink-0 flex items-center">{leftIcon}</span>
+          <span className="flex flex-shrink-0 items-center">{leftIcon}</span>
         )}
 
         {/* Children */}
@@ -159,7 +159,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         {/* Right icon */}
         {!loading && rightIcon && (
-          <span className="flex-shrink-0 flex items-center">{rightIcon}</span>
+          <span className="flex flex-shrink-0 items-center">{rightIcon}</span>
         )}
       </button>
     );

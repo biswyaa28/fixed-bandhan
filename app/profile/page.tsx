@@ -1,562 +1,583 @@
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Bandhan AI — Profile Page (Comic Book Aesthetic)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Route: /profile
+ *
+ * Sections (top to bottom):
+ *   1. ProfileHeader — photo, name, age, badge, intent
+ *   2. ProfileProgress — completion bar with checklist
+ *   3. LifeDetails — 2-col grid of key details
+ *   4. About Me — bio with edit button
+ *   5. Non-Negotiables — dealbreakers display
+ *   6. ProfilePrompts — "Life Story" prompts
+ *   7. ProfileVisitors — "Who viewed your profile"
+ *   8. Action buttons — Edit Profile, Photos, Privacy, Logout
+ *
+ * Monochromatic. 2px black borders. Hard 8-bit shadows. No gradients.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  Pencil,
   Camera,
-  User,
   Shield,
-  ShieldCheck,
-  MapPin,
-  GraduationCap,
-  Briefcase,
-  Home,
-  ChevronRight,
-  Save,
   LogOut,
-  Trash2,
-  AlertTriangle,
-  Bell,
-  Globe,
-  HelpCircle,
-  CreditCard,
+  X,
+  Ban,
+  Cigarette,
+  Wine,
+  Leaf,
+  Users,
+  MapPin,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+
+import {
+  type ProfileHeaderData,
+  ProfileHeader,
+} from "@/components/profile/ProfileHeader";
+import { type ProfileItem, ProfileProgress } from "@/components/profile/ProfileProgress";
+import { LifeDetails, buildLifeDetails } from "@/components/profile/LifeDetails";
+import {
+  type ProfilePrompt,
+  ProfilePrompts,
+  DEFAULT_PROMPTS,
+} from "@/components/profile/ProfilePrompts";
+import {
+  type ProfileVisitor,
+  ProfileVisitors,
+} from "@/components/profile/ProfileVisitors";
 
 function cn(...c: (string | undefined | null | false)[]) {
   return twMerge(clsx(c));
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface ProfileData {
-  name: string;
-  age: number;
-  avatarUrl: string;
-  verificationLevel: "bronze" | "silver" | "gold";
-  intent: string;
-  city: string;
-  education: string;
-  career: string;
-  family: string;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Mock Data
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const INITIAL_PROFILE: ProfileData = {
+const MOCK_HEADER: ProfileHeaderData = {
   name: "Rahul Sharma",
   age: 28,
-  avatarUrl: "",
-  verificationLevel: "gold",
-  intent: "Marriage within 1-2 years",
   city: "Bangalore",
-  education: "IIT Delhi",
-  career: "Software Engineer",
-  family: "Living with parents",
+  initials: "RS",
+  gradientFrom: "#EDE9FE",
+  gradientTo: "#DDD6FE",
+  verificationLevel: "gold",
+  intent: "Marriage within 1–2 years",
 };
 
-// ─── VerificationBadge ───────────────────────────────────────────────────────
-function VerifBadge({ level }: { level: "bronze" | "silver" | "gold" }) {
-  const cfg = {
-    bronze: {
-      cls: "bg-peach-100 border-peach-200 text-peach-700",
-      Icon: Shield,
-      label: "Phone Verified",
-    },
-    silver: {
-      cls: "bg-ink-100   border-ink-200   text-ink-600",
-      Icon: Shield,
-      label: "ID Verified",
-    },
-    gold: {
-      cls: "bg-gold-100  border-gold-200  text-gold-700",
-      Icon: ShieldCheck,
-      label: "Gold Verified",
-    },
-  }[level];
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold",
-        cfg.cls,
-      )}
-    >
-      <cfg.Icon className="w-3 h-3" strokeWidth={2.5} />
-      {cfg.label}
-    </span>
-  );
+const MOCK_COMPLETION: ProfileItem[] = [
+  { id: "photo", label: "Add profile photo", completed: true },
+  { id: "bio", label: "Write a bio", completed: true },
+  { id: "details", label: "Add life details", completed: true },
+  { id: "photos2", label: "Add 2 more photos", completed: false },
+  { id: "prompts", label: "Answer 3+ Life Story prompts", completed: true },
+  { id: "verify", label: "Complete Gold verification", completed: true },
+  { id: "dealbreakers", label: "Set Non-Negotiables", completed: false },
+  { id: "preferences", label: "Set match preferences", completed: true },
+];
+
+const MOCK_BIO =
+  "Software Engineer at a Bangalore startup. Passionate about travel, cooking, and building things that matter. Looking for someone who values both ambition and warmth.";
+
+interface DealBreaker {
+  id: string;
+  label: string;
+  value: string;
+  icon: typeof Leaf;
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+const MOCK_DEALBREAKERS: DealBreaker[] = [
+  { id: "smoking", label: "Smoking", value: "Non-negotiable: Never", icon: Cigarette },
+  { id: "drinking", label: "Drinking", value: "Okay occasionally", icon: Wine },
+  { id: "diet", label: "Diet", value: "Strict vegetarian", icon: Leaf },
+  { id: "family", label: "Family", value: "Open to discuss", icon: Users },
+  { id: "relocation", label: "Relocation", value: "Open to discuss", icon: MapPin },
+];
+
+const MOCK_VISITORS: ProfileVisitor[] = [
+  {
+    id: "v1",
+    name: "Priya",
+    initials: "PS",
+    gradientFrom: "#FFE4EA",
+    gradientTo: "#FECDD8",
+    timestamp: "2h ago",
+    isMatched: true,
+  },
+  {
+    id: "v2",
+    name: "Ananya",
+    initials: "AI",
+    gradientFrom: "#FEF3C7",
+    gradientTo: "#FDE68A",
+    timestamp: "5h ago",
+    isMatched: false,
+  },
+  {
+    id: "v3",
+    name: "Sneha",
+    initials: "SP",
+    gradientFrom: "#DCFCE7",
+    gradientTo: "#BBF7D0",
+    timestamp: "1d ago",
+    isMatched: false,
+  },
+  {
+    id: "v4",
+    name: "Kavya",
+    initials: "KN",
+    gradientFrom: "#E0F2FE",
+    gradientTo: "#BAE6FD",
+    timestamp: "2d ago",
+    isMatched: true,
+  },
+  {
+    id: "v5",
+    name: "Riya",
+    initials: "RG",
+    gradientFrom: "#EDE9FE",
+    gradientTo: "#DDD6FE",
+    timestamp: "3d ago",
+    isMatched: false,
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page Component
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
-  const [openSection, setOpenSection] = useState<string | null>("details");
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [bio, setBio] = useState(MOCK_BIO);
+  const [prompts, setPrompts] = useState<ProfilePrompt[]>(DEFAULT_PROMPTS);
+  const [editBioOpen, setEditBioOpen] = useState(false);
+  const [editPromptId, setEditPromptId] = useState<string | null>(null);
 
-  const update = (field: keyof ProfileData, value: string) => {
-    setProfile((p) => ({ ...p, [field]: value }));
-    setHasChanges(true);
-  };
+  // Handlers
+  const handleLogout = useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+      window.location.href = "/login";
+    }
+  }, []);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setIsSaving(false);
-    setHasChanges(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("auth_token");
-    window.location.href = "/login";
-  };
-
-  const handleDelete = async () => {
-    await new Promise((r) => setTimeout(r, 1500));
-    handleLogout();
-  };
-
-  const toggleSection = (s: string) =>
-    setOpenSection((o) => (o === s ? null : s));
+  const lifeDetails = buildLifeDetails({
+    city: "Bangalore",
+    education: "IIT Delhi, B.Tech CS",
+    career: "Software Engineer",
+    familyType: "Nuclear family",
+    diet: "Vegetarian",
+    religion: "Hindu",
+  });
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] safe-top pb-28">
-      {/* ── Sticky header ── */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-ink-100 safe-top">
-        <div className="max-w-lg mx-auto px-4 pt-14 pb-3.5 flex items-center justify-between">
-          <div>
-            <h1 className="text-[1.15rem] font-bold text-ink-900 tracking-tight">
-              Profile & Settings
-            </h1>
-            <p className="text-[11px] text-ink-400">Manage your account</p>
-          </div>
-          <AnimatePresence>
-            {hasChanges && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.85 }}
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-ink-900 text-white text-xs font-bold hover:bg-ink-700 transition-colors disabled:opacity-50"
-              >
-                <motion.div
-                  animate={isSaving ? { rotate: 360 } : { rotate: 0 }}
-                  transition={
-                    isSaving
-                      ? { duration: 1, repeat: Infinity, ease: "linear" }
-                      : {}
-                  }
-                >
-                  <Save className="w-3.5 h-3.5" />
-                </motion.div>
-                {isSaving ? "Saving…" : "Save"}
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white">
+      {/* ──────────────────────────────────────────────────────────────
+          1. PROFILE HEADER
+         ────────────────────────────────────────────────────────────── */}
+      <ProfileHeader
+        profile={MOCK_HEADER}
+        onChangePhoto={() => console.log("Change photo")}
+      />
 
-      <div className="max-w-lg mx-auto px-4 py-5 space-y-4">
-        {/* ── Profile identity card ── */}
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
-          {/* Gradient cover */}
-          <div className="h-20 bg-gradient-to-r from-lavender-100 via-blush-100 to-peach-100" />
-          <div className="px-5 pb-5 -mt-8">
-            <div className="flex items-end justify-between mb-4">
-              {/* Avatar */}
-              <div className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-white shadow-md overflow-hidden flex items-center justify-center">
-                  {profile.avatarUrl ? (
-                    <img
-                      src={profile.avatarUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-lavender-100 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-lavender-600">
-                        {profile.name?.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowAvatarModal(true)}
-                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-ink-900 border-2 border-white flex items-center justify-center"
-                >
-                  <Camera className="w-3 h-3 text-white" strokeWidth={2.5} />
-                </button>
-              </div>
-              <VerifBadge level={profile.verificationLevel} />
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] font-bold text-ink-400 uppercase tracking-wider block mb-1.5">
-                  Display Name
-                </label>
-                <input
-                  value={profile.name}
-                  onChange={(e) => update("name", e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-ink-200 text-sm text-ink-900 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100 bg-white"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-ink-400 uppercase tracking-wider block mb-1.5">
-                  Looking for
-                </label>
-                <select
-                  value={profile.intent}
-                  onChange={(e) => update("intent", e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-ink-200 text-sm text-ink-900 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100 bg-white"
-                >
-                  <option>Marriage within 1-2 years</option>
-                  <option>Serious relationship with marriage potential</option>
-                  <option>Friendship / Networking</option>
-                  <option>Healing space</option>
-                </select>
-              </div>
-            </div>
-          </div>
+      {/* Spacer + content */}
+      <div className="space-y-0">
+        {/* ──────────────────────────────────────────────────────────
+            2. PROFILE COMPLETION
+           ────────────────────────────────────────────────────────── */}
+        <div className="px-4 pt-4">
+          <ProfileProgress items={MOCK_COMPLETION} />
         </div>
 
-        {/* ── Personal details accordion ── */}
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
-          <button
-            onClick={() => toggleSection("details")}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-ink-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-lavender-100 flex items-center justify-center">
-                <User className="w-4 h-4 text-lavender-600" strokeWidth={1.5} />
-              </div>
-              <span className="text-[14px] font-semibold text-ink-900">
-                Personal Details
-              </span>
-            </div>
-            <ChevronRight
-              className={cn(
-                "w-4 h-4 text-ink-400 transition-transform duration-200",
-                openSection === "details" && "rotate-90",
-              )}
-            />
-          </button>
-          <AnimatePresence initial={false}>
-            {openSection === "details" && (
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: "auto" }}
-                exit={{ height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden border-t border-ink-100"
-              >
-                <div className="p-5 grid grid-cols-2 gap-3">
-                  {(
-                    [
-                      { label: "City", field: "city", icon: MapPin },
-                      {
-                        label: "Education",
-                        field: "education",
-                        icon: GraduationCap,
-                      },
-                      { label: "Career", field: "career", icon: Briefcase },
-                      { label: "Family", field: "family", icon: Home },
-                    ] as const
-                  ).map(({ label, field, icon: Icon }) => (
-                    <div key={field}>
-                      <label className="text-[10px] font-bold text-ink-400 uppercase tracking-wider block mb-1.5">
-                        {label}
-                      </label>
-                      <div className="relative">
-                        <Icon
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-400"
-                          strokeWidth={1.5}
-                        />
-                        <input
-                          value={profile[field] || ""}
-                          onChange={(e) => update(field, e.target.value)}
-                          className="w-full pl-8 pr-3 py-2 rounded-xl border border-ink-200 text-sm text-ink-900 focus:outline-none focus:border-lavender-400 focus:ring-2 focus:ring-lavender-100 bg-white"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* ── Dashed divider ── */}
+        <div className="mx-4 my-4 border-b border-dashed border-black" />
 
-        {/* ── Privacy accordion ── */}
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
-          <button
-            onClick={() => toggleSection("privacy")}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-ink-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-sage-100 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-sage-600" strokeWidth={1.5} />
-              </div>
-              <span className="text-[14px] font-semibold text-ink-900">
-                Privacy & Safety
-              </span>
-            </div>
-            <ChevronRight
-              className={cn(
-                "w-4 h-4 text-ink-400 transition-transform duration-200",
-                openSection === "privacy" && "rotate-90",
-              )}
-            />
-          </button>
-          <AnimatePresence initial={false}>
-            {openSection === "privacy" && (
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: "auto" }}
-                exit={{ height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden border-t border-ink-100"
-              >
-                <div className="divide-y divide-ink-50">
-                  {[
-                    {
-                      label: "Show online status",
-                      desc: "Others see when you're active",
-                    },
-                    {
-                      label: "Blur photos",
-                      desc: "Reveal only to accepted matches",
-                    },
-                    {
-                      label: "Read receipts",
-                      desc: "Show when you've read messages",
-                    },
-                  ].map(({ label, desc }, i) => (
-                    <PrivacyRow
-                      key={label}
-                      label={label}
-                      desc={desc}
-                      defaultOn={i === 0}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* ──────────────────────────────────────────────────────────
+            3. LIFE DETAILS GRID
+           ────────────────────────────────────────────────────────── */}
+        <LifeDetails details={lifeDetails} onEdit={() => console.log("Edit details")} />
 
-        {/* ── App settings rows ── */}
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden divide-y divide-ink-50">
-          {[
-            {
-              icon: Bell,
-              label: "Notifications",
-              color: "bg-peach-100   text-peach-600",
-            },
-            {
-              icon: Globe,
-              label: "Language",
-              color: "bg-sky-100     text-sky-600",
-            },
-            {
-              icon: CreditCard,
-              label: "Subscription",
-              color: "bg-gold-100    text-gold-600",
-            },
-            {
-              icon: HelpCircle,
-              label: "Help & Support",
-              color: "bg-lavender-100 text-lavender-600",
-            },
-          ].map(({ icon: Icon, label, color }) => (
+        <div className="mx-4 my-4 border-b border-dashed border-black" />
+
+        {/* ──────────────────────────────────────────────────────────
+            4. ABOUT ME / BIO
+           ────────────────────────────────────────────────────────── */}
+        <section className="px-4" aria-label="About me">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="m-0 font-heading text-[10px] font-bold uppercase tracking-widest text-[#9E9E9E]">
+              About Me
+            </h2>
             <button
-              key={label}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-ink-50 transition-colors group"
+              onClick={() => setEditBioOpen(true)}
+              className="flex cursor-pointer items-center gap-1 font-heading text-[8px] font-bold uppercase tracking-wider text-black hover:underline"
+              aria-label="Edit bio"
             >
-              <div className="flex items-center gap-3">
+              <Pencil className="h-3 w-3" strokeWidth={2} />
+              Edit
+            </button>
+          </div>
+          <div className="border-[2px] border-black bg-[#F8F8F8] px-3 py-3 shadow-[4px_4px_0px_#000000]">
+            <p className="m-0 text-xs leading-relaxed text-[#212121]">
+              {bio || "Tap edit to write something about yourself…"}
+            </p>
+          </div>
+        </section>
+
+        <div className="mx-4 my-4 border-b border-dashed border-black" />
+
+        {/* ──────────────────────────────────────────────────────────
+            5. NON-NEGOTIABLES (Dealbreakers)
+           ────────────────────────────────────────────────────────── */}
+        <section className="px-4" aria-label="Non-negotiables">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="m-0 font-heading text-[10px] font-bold uppercase tracking-widest text-[#9E9E9E]">
+                Non-Negotiables
+              </h2>
+              <Ban className="h-3 w-3 text-[#9E9E9E]" strokeWidth={2} />
+            </div>
+            <button
+              className="flex cursor-pointer items-center gap-1 font-heading text-[8px] font-bold uppercase tracking-wider text-black hover:underline"
+              aria-label="Edit dealbreakers"
+            >
+              <Pencil className="h-3 w-3" strokeWidth={2} />
+              Edit
+            </button>
+          </div>
+          <div className="border-[2px] border-black bg-white shadow-[4px_4px_0px_#000000]">
+            {MOCK_DEALBREAKERS.map((d, i) => {
+              const Icon = d.icon;
+              const isLast = i === MOCK_DEALBREAKERS.length - 1;
+              return (
                 <div
+                  key={d.id}
                   className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center",
-                    color,
+                    "flex items-center gap-3 px-3 py-2.5",
+                    !isLast && "border-b border-dashed border-[#E0E0E0]",
                   )}
                 >
-                  <Icon className="w-4 h-4" strokeWidth={1.5} />
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center border-[2px] border-black bg-[#F8F8F8]">
+                    <Icon className="h-3.5 w-3.5 text-black" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="m-0 text-[8px] font-bold uppercase tracking-wider text-[#9E9E9E]">
+                      {d.label}
+                    </p>
+                    <p className="m-0 truncate font-heading text-xs font-bold text-[#212121]">
+                      {d.value}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[14px] font-medium text-ink-800">
-                  {label}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ink-500 transition-colors" />
-            </button>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        </section>
 
-        {/* ── Danger zone ── */}
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden divide-y divide-ink-50">
+        <div className="mx-4 my-4 border-b border-dashed border-black" />
+
+        {/* ──────────────────────────────────────────────────────────
+            6. LIFE STORY PROMPTS
+           ────────────────────────────────────────────────────────── */}
+        <ProfilePrompts prompts={prompts} onEditPrompt={(id) => setEditPromptId(id)} />
+
+        <div className="mx-4 my-4 border-b border-dashed border-black" />
+
+        {/* ──────────────────────────────────────────────────────────
+            7. PROFILE VISITORS
+           ────────────────────────────────────────────────────────── */}
+        <ProfileVisitors
+          visitors={MOCK_VISITORS}
+          totalCount={12}
+          hideMyVisits={false}
+          onToggleHideVisits={(hide) => console.log("Hide visits:", hide)}
+        />
+
+        <div className="mx-4 my-4 border-b border-dashed border-black" />
+
+        {/* ──────────────────────────────────────────────────────────
+            8. ACTION BUTTONS
+           ────────────────────────────────────────────────────────── */}
+        <div className="space-y-2 px-4 pb-8">
+          <h2 className="m-0 mb-2 font-heading text-[10px] font-bold uppercase tracking-widest text-[#9E9E9E]">
+            Account
+          </h2>
+
+          {/* Edit Profile */}
+          <ActionRow icon={Pencil} label="Edit Profile" />
+          {/* Change Photos */}
+          <ActionRow icon={Camera} label="Change Photos" />
+          {/* Privacy Settings */}
+          <ActionRow icon={Shield} label="Privacy Settings" href="/more" />
+
+          {/* Logout — danger style */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50/60 transition-colors"
+            className={cn(
+              "flex w-full cursor-pointer items-center gap-3 px-4 py-3",
+              "border-[2px] border-[#EF476F] bg-[#FFF0F3]",
+              "shadow-[3px_3px_0px_#000000]",
+              "transition-all duration-100",
+              "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_#000000]",
+              "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+            )}
           >
-            <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center">
-              <LogOut className="w-4 h-4 text-red-500" strokeWidth={1.5} />
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center border-[2px] border-[#EF476F] bg-white">
+              <LogOut className="h-4 w-4 text-[#EF476F]" strokeWidth={2} />
             </div>
-            <span className="text-[14px] font-medium text-red-500">
-              Sign Out
+            <span className="font-heading text-xs font-bold uppercase tracking-wider text-[#EF476F]">
+              Log Out
             </span>
           </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50/60 transition-colors"
-          >
-            <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center">
-              <Trash2 className="w-4 h-4 text-red-500" strokeWidth={1.5} />
-            </div>
-            <span className="text-[14px] font-medium text-red-500">
-              Delete Account
-            </span>
-          </button>
-        </div>
 
-        <p className="text-center text-[10px] text-ink-300 pb-2">
-          Version 1.0.0 · Bandhan AI
-        </p>
+          {/* Version */}
+          <p className="m-0 pt-4 text-center text-[8px] text-[#9E9E9E]">
+            Bandhan AI v1.0.0 · Made with ❤️ in India
+          </p>
+        </div>
       </div>
 
-      {/* ── Avatar bottom sheet ── */}
+      {/* ══════════════════════════════════════════════════════════════
+          EDIT BIO MODAL
+         ══════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
-        {showAvatarModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAvatarModal(false)}
-              className="fixed inset-0 bg-ink-900/25 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl p-6 pb-10 safe-bottom shadow-2xl"
-            >
-              <div className="w-10 h-1 bg-ink-200 rounded-full mx-auto mb-5" />
-              <h3 className="text-base font-bold text-ink-900 mb-4">
-                Update Profile Photo
-              </h3>
-              <label className="block cursor-pointer">
-                <input type="file" accept="image/*" className="hidden" />
-                <div className="border-2 border-dashed border-ink-200 rounded-2xl p-10 text-center hover:border-lavender-300 hover:bg-lavender-50 transition-colors">
-                  <Camera
-                    className="w-8 h-8 text-ink-300 mx-auto mb-2"
-                    strokeWidth={1.5}
-                  />
-                  <p className="text-sm font-semibold text-ink-600">
-                    Tap to upload
-                  </p>
-                  <p className="text-xs text-ink-400 mt-0.5">
-                    PNG or JPG, max 5 MB
-                  </p>
-                </div>
-              </label>
-              <button
-                onClick={() => setShowAvatarModal(false)}
-                className="w-full mt-3 py-3 rounded-2xl border border-ink-200 text-sm font-medium text-ink-500 hover:bg-ink-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </motion.div>
-          </>
+        {editBioOpen && (
+          <EditBioModal
+            initialBio={bio}
+            onSave={(newBio) => {
+              setBio(newBio);
+              setEditBioOpen(false);
+            }}
+            onClose={() => setEditBioOpen(false)}
+          />
         )}
       </AnimatePresence>
 
-      {/* ── Delete confirm dialog ── */}
+      {/* ══════════════════════════════════════════════════════════════
+          EDIT PROMPT MODAL
+         ══════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
-        {showDeleteConfirm && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConfirm(false)}
-              className="fixed inset-0 bg-ink-900/30 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-5"
-            >
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-ink-100 shadow-xl">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                    <AlertTriangle
-                      className="w-5 h-5 text-red-500"
-                      strokeWidth={1.5}
-                    />
-                  </div>
-                  <h3 className="text-[15px] font-bold text-ink-900">
-                    Delete Account?
-                  </h3>
-                </div>
-                <p className="text-[13px] text-ink-500 mb-5 leading-relaxed">
-                  This cannot be undone. All your data, matches, and
-                  conversations will be permanently deleted.
-                </p>
-                <div className="flex gap-2.5">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
+        {editPromptId && (
+          <EditPromptModal
+            prompt={prompts.find((p) => p.id === editPromptId)!}
+            onSave={(id, answer) => {
+              setPrompts((prev) => prev.map((p) => (p.id === id ? { ...p, answer } : p)));
+              setEditPromptId(null);
+            }}
+            onClose={() => setEditPromptId(null)}
+          />
         )}
       </AnimatePresence>
     </div>
   );
 }
 
-// ─── Privacy toggle row ───────────────────────────────────────────────────────
-function PrivacyRow({
+// ─────────────────────────────────────────────────────────────────────────────
+// Action Row Button
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ActionRow({
+  icon: Icon,
   label,
-  desc,
-  defaultOn,
+  href,
+  onClick,
 }: {
+  icon: typeof Pencil;
   label: string;
-  desc: string;
-  defaultOn?: boolean;
+  href?: string;
+  onClick?: () => void;
 }) {
-  const [on, setOn] = useState(!!defaultOn);
+  const Tag = href ? "a" : "button";
   return (
-    <div className="flex items-center justify-between px-5 py-3.5">
-      <div>
-        <p className="text-[13px] font-medium text-ink-800">{label}</p>
-        <p className="text-[11px] text-ink-400">{desc}</p>
+    <Tag
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "flex w-full cursor-pointer items-center gap-3 px-4 py-3 no-underline",
+        "border-[2px] border-black bg-white",
+        "shadow-[3px_3px_0px_#000000]",
+        "transition-all duration-100",
+        "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_#000000]",
+        "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+      )}
+    >
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center border-[2px] border-black bg-[#F8F8F8]">
+        <Icon className="h-4 w-4 text-black" strokeWidth={2} />
       </div>
-      <button
-        onClick={() => setOn((v) => !v)}
-        className={cn(
-          "relative w-10 h-6 rounded-full transition-colors duration-200 shrink-0",
-          on ? "bg-lavender-400" : "bg-ink-200",
-        )}
+      <span className="font-heading text-xs font-bold uppercase tracking-wider text-black">
+        {label}
+      </span>
+    </Tag>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edit Bio Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EditBioModal({
+  initialBio,
+  onSave,
+  onClose,
+}: {
+  initialBio: string;
+  onSave: (bio: string) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(initialBio);
+  const maxLen = 300;
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/70"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed bottom-0 left-0 right-0 z-50 border-t-[3px] border-black bg-white safe-bottom"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit bio"
       >
-        <motion.div
-          animate={{ x: on ? 16 : 2 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
-        />
-      </button>
-    </div>
+        <div className="flex items-center justify-between border-b-[2px] border-black px-4 py-3">
+          <h2 className="m-0 font-heading text-sm font-bold uppercase tracking-wide text-black">
+            ✏️ Edit Bio
+          </h2>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center border-[2px] border-black bg-white hover:bg-[#F8F8F8]"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4 text-black" strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="p-4">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, maxLen))}
+            rows={4}
+            maxLength={maxLen}
+            placeholder="Tell others about yourself…"
+            className="w-full resize-none border-[2px] border-black bg-white px-3 py-2 text-sm text-[#212121] placeholder:italic placeholder:text-[#9E9E9E] focus:shadow-[0_0_0_3px_#fff,0_0_0_6px_#000] focus:outline-none"
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[10px] tabular-nums text-[#9E9E9E]">
+              {text.length}/{maxLen}
+            </span>
+            <button
+              onClick={() => onSave(text.trim())}
+              className={cn(
+                "border-[2px] border-black px-4 py-2",
+                "cursor-pointer font-heading text-[10px] font-bold uppercase tracking-wider",
+                "bg-black text-white shadow-[3px_3px_0px_#000]",
+                "hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#424242] hover:shadow-[2px_2px_0px_#000]",
+                "transition-all duration-100",
+              )}
+            >
+              Save ✓
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edit Prompt Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EditPromptModal({
+  prompt,
+  onSave,
+  onClose,
+}: {
+  prompt: ProfilePrompt;
+  onSave: (id: string, answer: string) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(prompt.answer || "");
+  const maxLen = 200;
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/70"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed bottom-0 left-0 right-0 z-50 border-t-[3px] border-black bg-white safe-bottom"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit prompt"
+      >
+        <div className="flex items-center justify-between border-b-[2px] border-black px-4 py-3">
+          <h2 className="m-0 font-heading text-sm font-bold uppercase tracking-wide text-black">
+            ✏️ Edit Prompt
+          </h2>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center border-[2px] border-black bg-white hover:bg-[#F8F8F8]"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4 text-black" strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="p-4">
+          <p className="m-0 mb-2 font-heading text-[10px] font-bold uppercase tracking-wider text-[#9E9E9E]">
+            {prompt.question}
+          </p>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, maxLen))}
+            rows={3}
+            maxLength={maxLen}
+            placeholder="Type your answer…"
+            className="w-full resize-none border-[2px] border-black bg-white px-3 py-2 text-sm text-[#212121] placeholder:italic placeholder:text-[#9E9E9E] focus:shadow-[0_0_0_3px_#fff,0_0_0_6px_#000] focus:outline-none"
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[10px] tabular-nums text-[#9E9E9E]">
+              {text.length}/{maxLen}
+            </span>
+            <button
+              onClick={() => {
+                if (text.trim()) onSave(prompt.id, text.trim());
+              }}
+              disabled={!text.trim()}
+              className={cn(
+                "border-[2px] border-black px-4 py-2",
+                "font-heading text-[10px] font-bold uppercase tracking-wider",
+                "transition-all duration-100",
+                text.trim()
+                  ? "cursor-pointer bg-black text-white shadow-[3px_3px_0px_#000] hover:bg-[#424242]"
+                  : "cursor-not-allowed bg-[#E0E0E0] text-[#9E9E9E]",
+              )}
+            >
+              Save ✓
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </>
   );
 }

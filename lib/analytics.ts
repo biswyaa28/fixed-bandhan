@@ -185,9 +185,7 @@ export function setConsent(state: ConsentState): void {
 }
 
 /** Update consent for specific purposes. */
-export function updateConsent(
-  purposes: Partial<Record<ConsentPurpose, boolean>>,
-): void {
+export function updateConsent(purposes: Partial<Record<ConsentPurpose, boolean>>): void {
   const current = getConsent();
   const updated: ConsentState = {
     hasResponded: true,
@@ -387,10 +385,7 @@ function storeEventLocally(event: AnalyticsEvent): void {
 
 // ── Matching metrics ──
 
-export function trackMatchCreated(
-  matchId: string,
-  compatibilityScore: number,
-): void {
+export function trackMatchCreated(matchId: string, compatibilityScore: number): void {
   trackEvent("match_created", { match_id: matchId, score: compatibilityScore });
 }
 
@@ -454,10 +449,7 @@ export function trackUpsellModalShown(properties: UpsellEventProperties): void {
   trackEvent("upsell_modal_shown", { ...properties });
 }
 
-export function trackUpgradeCTAClick(
-  modalType: string,
-  ctaPosition = "primary",
-): void {
+export function trackUpgradeCTAClick(modalType: string, ctaPosition = "primary"): void {
   trackEvent("upgrade_cta_clicked", {
     modal_type: modalType,
     cta_position: ctaPosition,
@@ -493,10 +485,7 @@ export function trackConversion(properties: ConversionEventProperties): void {
   trackEvent("premium_converted", { ...properties });
 }
 
-export function trackPaymentFailure(
-  planType: string,
-  errorCode?: string,
-): void {
+export function trackPaymentFailure(planType: string, errorCode?: string): void {
   trackEvent("payment_failed", { plan_type: planType, error_code: errorCode });
 }
 
@@ -591,12 +580,8 @@ export function getEventsByName(eventName: string): AnalyticsEvent[] {
 
 export function getConversionRate(): number {
   const events = getAllEvents();
-  const impressions = events.filter(
-    (e) => e.event_name === "upsell_modal_shown",
-  ).length;
-  const conversions = events.filter(
-    (e) => e.event_name === "premium_converted",
-  ).length;
+  const impressions = events.filter((e) => e.event_name === "upsell_modal_shown").length;
+  const conversions = events.filter((e) => e.event_name === "premium_converted").length;
   if (impressions === 0) return 0;
   return (conversions / impressions) * 100;
 }
@@ -618,7 +603,471 @@ export function clearAnalytics(): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. INITIALIZATION
+// 9. RETENTION & FUNNEL TRACKING
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RETENTION_KEY = "bandhan_retention";
+const SESSION_KEY = "bandhan_session";
+
+interface RetentionData {
+  /** ISO date of first app open (signup day) */
+  firstSeen: string;
+  /** ISO dates of all unique days the user opened the app */
+  activeDays: string[];
+  /** ISO date of last visit */
+  lastSeen: string;
+}
+
+function getTodayISO(): string {
+  return new Date().toISOString().slice(0, 10); // "2026-02-28"
+}
+
+function getRetentionData(): RetentionData {
+  if (typeof localStorage === "undefined") {
+    return {
+      firstSeen: getTodayISO(),
+      activeDays: [getTodayISO()],
+      lastSeen: getTodayISO(),
+    };
+  }
+  try {
+    const raw = localStorage.getItem(RETENTION_KEY);
+    if (!raw) {
+      const fresh: RetentionData = {
+        firstSeen: getTodayISO(),
+        activeDays: [getTodayISO()],
+        lastSeen: getTodayISO(),
+      };
+      localStorage.setItem(RETENTION_KEY, JSON.stringify(fresh));
+      return fresh;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return {
+      firstSeen: getTodayISO(),
+      activeDays: [getTodayISO()],
+      lastSeen: getTodayISO(),
+    };
+  }
+}
+
+function saveRetentionData(data: RetentionData): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(RETENTION_KEY, JSON.stringify(data));
+  } catch {
+    /* storage full */
+  }
+}
+
+/**
+ * Record a daily active session.
+ * Call once per app open (e.g. from PerfInit).
+ * Tracks DAU, retention, and churn data locally.
+ */
+export function recordDailyActive(): void {
+  const today = getTodayISO();
+  const data = getRetentionData();
+
+  if (!data.activeDays.includes(today)) {
+    data.activeDays.push(today);
+    // Keep last 90 days only (data retention policy)
+    if (data.activeDays.length > 90) {
+      data.activeDays = data.activeDays.slice(-90);
+    }
+  }
+  data.lastSeen = today;
+  saveRetentionData(data);
+
+  // Report session to Umami
+  trackEvent("daily_active_session", {
+    days_since_signup: daysBetween(data.firstSeen, today),
+    total_active_days: data.activeDays.length,
+  });
+}
+
+function daysBetween(dateA: string, dateB: string): number {
+  const a = new Date(dateA).getTime();
+  const b = new Date(dateB).getTime();
+  return Math.round(Math.abs(b - a) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Calculate retention rates.
+ * Returns Day 1, Day 7, and Day 30 retention as percentages.
+ *
+ * Retention is measured as: "Did the user come back on day N after signup?"
+ */
+export function getRetentionRates(): {
+  day1: boolean;
+  day7: boolean;
+  day30: boolean;
+  totalActiveDays: number;
+  daysSinceSignup: number;
+  daysSinceLastVisit: number;
+} {
+  const data = getRetentionData();
+  const today = getTodayISO();
+  const daysSinceSignup = daysBetween(data.firstSeen, today);
+  const daysSinceLastVisit = daysBetween(data.lastSeen, today);
+
+  // Check if user was active on specific days after signup
+  const signupDate = new Date(data.firstSeen);
+  const day1Date = new Date(signupDate);
+  day1Date.setDate(day1Date.getDate() + 1);
+  const day7Date = new Date(signupDate);
+  day7Date.setDate(day7Date.getDate() + 7);
+  const day30Date = new Date(signupDate);
+  day30Date.setDate(day30Date.getDate() + 30);
+
+  const hasDay = (d: Date) => data.activeDays.includes(d.toISOString().slice(0, 10));
+
+  return {
+    day1: daysSinceSignup >= 1 && hasDay(day1Date),
+    day7: daysSinceSignup >= 7 && hasDay(day7Date),
+    day30: daysSinceSignup >= 30 && hasDay(day30Date),
+    totalActiveDays: data.activeDays.length,
+    daysSinceSignup,
+    daysSinceLastVisit,
+  };
+}
+
+/**
+ * Get DAU/MAU ratio (stickiness metric).
+ * Higher = more engaged users. Benchmarks:
+ *   - Social apps: 50%+
+ *   - Dating apps: 30-40%
+ *   - Bandhan target: 35%+
+ *
+ * Calculated from locally stored daily active data.
+ */
+export function getDAUMAURatio(): {
+  dau: number;
+  wau: number;
+  mau: number;
+  stickiness: number;
+} {
+  const data = getRetentionData();
+  const today = new Date(getTodayISO());
+
+  const isWithinDays = (dateStr: string, days: number) => {
+    const d = new Date(dateStr);
+    return daysBetween(dateStr, today.toISOString().slice(0, 10)) < days;
+  };
+
+  const activeLast1 = data.activeDays.filter((d) => isWithinDays(d, 1)).length;
+  const activeLast7 = data.activeDays.filter((d) => isWithinDays(d, 7)).length;
+  const activeLast30 = data.activeDays.filter((d) => isWithinDays(d, 30)).length;
+
+  return {
+    dau: activeLast1,
+    wau: activeLast7,
+    mau: activeLast30,
+    stickiness: activeLast30 > 0 ? Math.round((activeLast1 / activeLast30) * 100) : 0,
+  };
+}
+
+/**
+ * Get churn indicators.
+ * A user is considered "at risk" if inactive for 7+ days,
+ * and "churned" if inactive for 30+ days.
+ */
+export function getChurnStatus(): {
+  status: "active" | "at-risk" | "churned";
+  daysSinceLastVisit: number;
+  recommendation: string;
+} {
+  const retention = getRetentionRates();
+  const days = retention.daysSinceLastVisit;
+
+  if (days <= 3) {
+    return { status: "active", daysSinceLastVisit: days, recommendation: "" };
+  }
+  if (days <= 14) {
+    return {
+      status: "at-risk",
+      daysSinceLastVisit: days,
+      recommendation: "Send re-engagement notification",
+    };
+  }
+  return {
+    status: "churned",
+    daysSinceLastVisit: days,
+    recommendation: "Send win-back email or push notification",
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. FUNNEL ANALYSIS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FUNNEL_KEY = "bandhan_funnel";
+
+/** Standard acquisition funnel stages */
+export type FunnelStage =
+  | "app_opened"
+  | "login_started"
+  | "otp_verified"
+  | "profile_created"
+  | "profile_completed"
+  | "first_like_sent"
+  | "first_match"
+  | "first_message_sent"
+  | "first_message_received"
+  | "premium_viewed"
+  | "premium_converted";
+
+interface FunnelData {
+  stages: Partial<Record<FunnelStage, string>>; // stage → ISO timestamp
+}
+
+function getFunnelData(): FunnelData {
+  if (typeof localStorage === "undefined") return { stages: {} };
+  try {
+    const raw = localStorage.getItem(FUNNEL_KEY);
+    return raw ? JSON.parse(raw) : { stages: {} };
+  } catch {
+    return { stages: {} };
+  }
+}
+
+function saveFunnelData(data: FunnelData): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(FUNNEL_KEY, JSON.stringify(data));
+  } catch {
+    /* storage full */
+  }
+}
+
+/**
+ * Record that the user reached a funnel stage.
+ * Only records the FIRST time each stage is reached.
+ *
+ * @example
+ *   recordFunnelStage('otp_verified');
+ *   recordFunnelStage('profile_created');
+ *   recordFunnelStage('first_match');
+ */
+export function recordFunnelStage(stage: FunnelStage): void {
+  const data = getFunnelData();
+  if (data.stages[stage]) return; // Already recorded
+
+  data.stages[stage] = new Date().toISOString();
+  saveFunnelData(data);
+
+  // Track in Umami
+  trackEvent("funnel_stage_reached", {
+    stage,
+    time_since_signup: data.stages.app_opened
+      ? daysBetween(data.stages.app_opened.slice(0, 10), getTodayISO())
+      : 0,
+  });
+}
+
+/**
+ * Get the current funnel progress.
+ * Returns all reached stages with timestamps and the drop-off point.
+ */
+export function getFunnelProgress(): {
+  stages: { stage: FunnelStage; reachedAt: string }[];
+  currentStage: FunnelStage | null;
+  dropOffStage: FunnelStage | null;
+  completionPercent: number;
+} {
+  const data = getFunnelData();
+  const allStages: FunnelStage[] = [
+    "app_opened",
+    "login_started",
+    "otp_verified",
+    "profile_created",
+    "profile_completed",
+    "first_like_sent",
+    "first_match",
+    "first_message_sent",
+    "first_message_received",
+    "premium_viewed",
+    "premium_converted",
+  ];
+
+  const reached = allStages
+    .filter((s) => data.stages[s])
+    .map((s) => ({ stage: s, reachedAt: data.stages[s]! }));
+
+  const lastReached = reached.length > 0 ? reached[reached.length - 1].stage : null;
+
+  // Find where user dropped off
+  let dropOff: FunnelStage | null = null;
+  for (let i = 0; i < allStages.length; i++) {
+    if (!data.stages[allStages[i]]) {
+      dropOff = allStages[i];
+      break;
+    }
+  }
+
+  return {
+    stages: reached,
+    currentStage: lastReached,
+    dropOffStage: dropOff,
+    completionPercent: Math.round((reached.length / allStages.length) * 100),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. MATCH & MESSAGE METRICS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Calculate the match rate from local event data.
+ * Match rate = (matches / likes sent) * 100
+ */
+export function getMatchRate(): { likes: number; matches: number; rate: number } {
+  const likes = getEventsByName("interest_sent").length;
+  const matches = getEventsByName("match_created").length;
+  return {
+    likes,
+    matches,
+    rate: likes > 0 ? Math.round((matches / likes) * 100) : 0,
+  };
+}
+
+/**
+ * Calculate message response rate from local event data.
+ * Response rate = (messages received / messages sent) * 100
+ */
+export function getMessageResponseRate(): {
+  sent: number;
+  received: number;
+  rate: number;
+} {
+  const sent = getEventsByName("message_sent").length;
+  // We track received messages as a separate event
+  const received = getEventsByName("message_received").length;
+  return {
+    sent,
+    received,
+    rate: sent > 0 ? Math.round((received / sent) * 100) : 0,
+  };
+}
+
+/**
+ * Calculate profile completion rate from the most recent profile event.
+ */
+export function getProfileCompletionRate(): number {
+  const events = getEventsByName("profile_updated");
+  if (events.length === 0) return 0;
+  const latest = events[events.length - 1];
+  return (latest.properties as any)?.completion ?? 0;
+}
+
+/**
+ * Calculate free → premium conversion rate.
+ */
+export function getPremiumConversionRate(): {
+  upsellImpressions: number;
+  conversions: number;
+  rate: number;
+} {
+  const impressions = getEventsByName("upsell_modal_shown").length;
+  const conversions = getEventsByName("premium_converted").length;
+  return {
+    upsellImpressions: impressions,
+    conversions,
+    rate: impressions > 0 ? Math.round((conversions / impressions) * 100) : 0,
+  };
+}
+
+/**
+ * Log a comprehensive metrics dashboard to the console.
+ */
+export function logMetricsDashboard(): void {
+  if (typeof console === "undefined") return;
+
+  const retention = getRetentionRates();
+  const dauMau = getDAUMAURatio();
+  const churn = getChurnStatus();
+  const matchRate = getMatchRate();
+  const msgRate = getMessageResponseRate();
+  const profileRate = getProfileCompletionRate();
+  const convRate = getPremiumConversionRate();
+  const funnel = getFunnelProgress();
+
+  // eslint-disable-next-line no-console
+  console.group(
+    "%c📈 Bandhan AI — Metrics Dashboard",
+    "font-size: 16px; font-weight: bold;",
+  );
+
+  // eslint-disable-next-line no-console
+  console.log("\n%c👥 Engagement:", "font-weight: bold;");
+  // eslint-disable-next-line no-console
+  console.table({
+    "DAU (today)": dauMau.dau,
+    "WAU (7 days)": dauMau.wau,
+    "MAU (30 days)": dauMau.mau,
+    "Stickiness (DAU/MAU)": `${dauMau.stickiness}%`,
+    "Churn status": churn.status,
+    "Days since last visit": churn.daysSinceLastVisit,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("\n%c🔄 Retention:", "font-weight: bold;");
+  // eslint-disable-next-line no-console
+  console.table({
+    "Day 1": retention.day1 ? "✅ Retained" : "❌ Not retained",
+    "Day 7": retention.day7
+      ? "✅ Retained"
+      : retention.daysSinceSignup < 7
+        ? "⏳ Too early"
+        : "❌ Not retained",
+    "Day 30": retention.day30
+      ? "✅ Retained"
+      : retention.daysSinceSignup < 30
+        ? "⏳ Too early"
+        : "❌ Not retained",
+    "Total active days": retention.totalActiveDays,
+    "Days since signup": retention.daysSinceSignup,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("\n%c💘 Matching:", "font-weight: bold;");
+  // eslint-disable-next-line no-console
+  console.table({
+    "Likes sent": matchRate.likes,
+    "Matches made": matchRate.matches,
+    "Match rate": `${matchRate.rate}%`,
+    "Messages sent": msgRate.sent,
+    "Messages received": msgRate.received,
+    "Response rate": `${msgRate.rate}%`,
+    "Profile completion": `${profileRate}%`,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("\n%c💎 Conversion:", "font-weight: bold;");
+  // eslint-disable-next-line no-console
+  console.table({
+    "Upsell impressions": convRate.upsellImpressions,
+    Conversions: convRate.conversions,
+    "Conversion rate": `${convRate.rate}%`,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("\n%c🔀 Funnel:", "font-weight: bold;");
+  // eslint-disable-next-line no-console
+  console.log(`Progress: ${funnel.completionPercent}%`);
+  // eslint-disable-next-line no-console
+  console.log(`Current stage: ${funnel.currentStage || "not started"}`);
+  // eslint-disable-next-line no-console
+  console.log(`Drop-off at: ${funnel.dropOffStage || "none (completed!)"}`);
+  // eslint-disable-next-line no-console
+  console.table(funnel.stages);
+
+  // eslint-disable-next-line no-console
+  console.groupEnd();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. INITIALIZATION
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -635,13 +1084,17 @@ export function initAnalytics(): void {
   // Respect Do Not Track
   if (isDoNotTrack()) return;
 
+  // Record daily active session (for DAU/MAU/retention)
+  recordDailyActive();
+
+  // Record funnel entry
+  recordFunnelStage("app_opened");
+
   // If user previously consented to any optional purpose, load Umami
   const consent = getConsent();
   if (consent.hasResponded) {
     const anyOptional =
-      consent.purposes.matching ||
-      consent.purposes.safety ||
-      consent.purposes.marketing;
+      consent.purposes.matching || consent.purposes.safety || consent.purposes.marketing;
     if (anyOptional) {
       loadUmamiScript();
     }
@@ -672,7 +1125,7 @@ export default {
   getConversionRate,
   getLimitHitsByHour,
   clearAnalytics,
-  // New exports
+  // Consent management
   initAnalytics,
   getConsent,
   setConsent,
@@ -685,10 +1138,25 @@ export default {
   exportUserData,
   downloadUserData,
   deleteUserData,
+  // Bandhan-specific tracking
   trackMatchCreated,
   trackInterestSent,
   trackMessageSent,
   trackProfileUpdated,
   trackVoiceNoteRecorded,
   trackSafetyButtonPressed,
+  // Retention & engagement
+  recordDailyActive,
+  getRetentionRates,
+  getDAUMAURatio,
+  getChurnStatus,
+  // Funnel analysis
+  recordFunnelStage,
+  getFunnelProgress,
+  // Business metrics
+  getMatchRate,
+  getMessageResponseRate,
+  getProfileCompletionRate,
+  getPremiumConversionRate,
+  logMetricsDashboard,
 };

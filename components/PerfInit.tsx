@@ -1,13 +1,15 @@
 /**
- * Bandhan AI — Performance, Accessibility & Analytics Initializer
+ * Bandhan AI — Performance, Accessibility, Analytics & Error Tracking Initializer
  *
  * Mounts once in the root layout and:
- *  1. Initializes Web Vitals monitoring (FCP, LCP, CLS, FID)
- *  2. Detects slow networks (2G) and sets data-reduce-motion on <html>
- *  3. Injects hidden aria-live regions for screen reader announcements
- *  4. Respects prefers-reduced-motion OS preference
- *  5. Initializes Umami analytics (only if user previously consented)
- *  6. Logs performance summary in development
+ *  1. Initializes Web Vitals monitoring (FCP, LCP, CLS, FID, INP)
+ *  2. Initializes performance budget monitoring & analytics reporting
+ *  3. Initializes global error tracking (Sentry free tier)
+ *  4. Detects slow networks (2G) and sets data-reduce-motion on <html>
+ *  5. Injects hidden aria-live regions for screen reader announcements
+ *  6. Respects prefers-reduced-motion OS preference
+ *  7. Initializes Umami analytics (only if user previously consented)
+ *  8. Logs performance summary in development
  *
  * ZERO external dependencies. < 0.5KB gzipped.
  */
@@ -15,27 +17,31 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  initPerfMonitoring,
-  shouldReduceMotion,
-  logPerfSummary,
-} from "@/lib/performance";
-import {
-  initLiveRegions,
-  onReducedMotionChange,
-  prefersReducedMotion,
-} from "@/lib/a11y";
+import { shouldReduceMotion, logPerfSummary } from "@/lib/performance";
+import { initPerformanceMonitoring } from "@/lib/performance-monitoring";
+import { initErrorTracking } from "@/lib/error-tracking";
+import { initLiveRegions, onReducedMotionChange, prefersReducedMotion } from "@/lib/a11y";
 import { initAnalytics } from "@/lib/analytics";
 
 export function PerfInit() {
   useEffect(() => {
-    // ── Performance monitoring ──
-    initPerfMonitoring();
+    // ── Performance monitoring (Web Vitals + budgets + analytics reporting) ──
+    initPerformanceMonitoring((violation) => {
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Perf] Budget violation: ${violation.metric} = ${violation.actual}${violation.unit} (budget: < ${violation.threshold}${violation.unit})`,
+        );
+      }
+    });
+
+    // ── Error tracking (Sentry free tier + global handlers) ──
+    initErrorTracking();
 
     // ── Accessibility: inject aria-live regions ──
     initLiveRegions();
 
-    // ── Analytics: load Umami if user already consented ──
+    // ── Analytics: load Umami + record DAU + funnel stage ──
     initAnalytics();
 
     // ── Reduced motion: set data attribute for CSS to read ──
