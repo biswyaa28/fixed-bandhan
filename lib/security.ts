@@ -82,8 +82,9 @@ export function sanitizeText(input: string, maxLength = 500): string {
   let clean = stripHtml(input);
   // Remove null bytes (bypass attempts)
   clean = clean.replace(/\0/g, "");
-  // Remove control characters except newline/tab (using Unicode property escapes)
-  clean = clean.replace(/[\p{Cc}--[\t\n\r]]/gu, "");
+  // Remove control characters except tab, newline, carriage return
+  // eslint-disable-next-line no-control-regex
+  clean = clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   // Collapse multiple whitespace
   clean = clean.replace(/\s+/g, " ").trim();
   // Enforce max length
